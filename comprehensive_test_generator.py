@@ -6,7 +6,8 @@
 """
 
 from test_case_generator import TestCase, TestCaseGenerator, Priority, TestMethod, RequirementAnalysis
-from typing import List, Dict
+from test_step_optimizer import TestStepOptimizer
+from typing import List
 import re
 
 class ComprehensiveTestGenerator(TestCaseGenerator):
@@ -14,6 +15,7 @@ class ComprehensiveTestGenerator(TestCaseGenerator):
     
     def __init__(self, custom_headers=None):
         super().__init__(custom_headers)
+        self.step_optimizer = TestStepOptimizer()
         
     def add_comprehensive_test_case(self, module: str, submodule: str, title: str,
                                    precondition: str, test_steps: str, expected: str,
@@ -86,67 +88,7 @@ class ComprehensiveTestGenerator(TestCaseGenerator):
         print(f"✅ 生成完成，共 {len(self.test_cases)} 个测试用例")
         return self.test_cases
 
-    def _generate_detailed_steps(self, base_steps: str, context: Dict) -> str:
-        """生成详细的测试步骤"""
-        # 解析基础步骤
-        steps = base_steps.split('\n')
-        detailed_steps = []
 
-        for i, step in enumerate(steps, 1):
-            # 移除原有的编号
-            step_content = re.sub(r'^\d+\.\s*', '', step.strip())
-
-            # 根据步骤内容生成详细描述
-            if "触发备选流程" in step_content:
-                detailed_step = self._expand_alternative_flow_step(step_content, context)
-            elif "执行备选路径" in step_content:
-                detailed_step = self._expand_alternative_path_step(step_content, context)
-            elif "验证" in step_content and "结果" in step_content:
-                detailed_step = self._expand_verification_step(step_content, context)
-            else:
-                detailed_step = step_content
-
-            detailed_steps.append(f"{i}. {detailed_step}")
-
-        return '\n'.join(detailed_steps)
-
-    def _expand_alternative_flow_step(self, step: str, context: Dict) -> str:
-        """扩展备选流程步骤"""
-        main_function = context.get('main_function', '功能')
-
-        # 根据功能类型生成具体的备选流程描述
-        if "登录" in main_function or "用户" in main_function:
-            return f"触发备选流程：直接通过URL访问用户中心页面（跳过登录页面），或使用第三方登录方式"
-        elif "购物" in main_function or "商品" in main_function:
-            return f"触发备选流程：直接从商品详情页进入购买流程（跳过商品列表页面），或通过搜索结果直接购买"
-        elif "支付" in main_function:
-            return f"触发备选流程：使用快捷支付方式（跳过常规支付流程），或从购物车直接结算"
-        elif "个人" in main_function or "信息" in main_function:
-            return f"触发备选流程：直接从网址进入个人信息页面（跳过主页导航），或通过快捷菜单访问"
-        else:
-            return f"触发备选流程：通过非常规路径进入{main_function}（如直接URL访问、快捷入口等）"
-
-    def _expand_alternative_path_step(self, step: str, context: Dict) -> str:
-        """扩展备选路径步骤"""
-        main_function = context.get('main_function', '功能')
-
-        if "个人信息" in step:
-            return "执行备选路径：点击快捷菜单中的'个人信息'选项，或使用右上角用户头像下拉菜单"
-        elif "登录" in main_function:
-            return "执行备选路径：选择第三方登录（微信、QQ、支付宝等），或使用手机验证码登录"
-        elif "购物" in main_function:
-            return "执行备选路径：使用'立即购买'按钮（跳过购物车），或选择'一键下单'功能"
-        else:
-            return f"执行备选路径：使用{main_function}的快捷操作方式或辅助入口"
-
-    def _expand_verification_step(self, step: str, context: Dict) -> str:
-        """扩展验证步骤"""
-        if "备选" in step:
-            return "验证备选流程执行结果：检查页面是否正确加载，功能是否完整可用，数据是否正确显示，用户状态是否正常"
-        elif "响应" in step:
-            return "检查系统响应结果：验证响应时间是否合理，返回数据是否正确，错误处理是否得当，用户体验是否良好"
-        else:
-            return step
     
     def _extract_main_function(self, requirement_text: str) -> str:
         """提取主要功能名称"""
@@ -343,16 +285,17 @@ class ComprehensiveTestGenerator(TestCaseGenerator):
             remark="完整业务流程验证"
         )
 
-        # 备选流程测试 - 使用详细步骤生成
+        # 备选流程测试 - 使用步骤优化器生成详细步骤
+        context['requirement_text'] = requirement_text
         base_steps = "1. 触发备选流程条件\n2. 执行备选路径\n3. 验证备选结果"
-        detailed_steps = self._generate_detailed_steps(base_steps, context)
+        optimized_steps = self.step_optimizer.optimize_test_steps(base_steps, context)
 
         self.add_comprehensive_test_case(
             module="业务流程",
             submodule="备选流程",
             title=f"验证{main_function}备选流程的正确执行",
             precondition="系统正常运行，用户已登录，存在备选路径触发条件",
-            test_steps=detailed_steps,
+            test_steps=optimized_steps,
             expected="备选流程正确执行，页面正常显示，功能完整可用，系统状态正确",
             priority=Priority.P1,
             methods=[TestMethod.SCENARIO],

@@ -27,9 +27,9 @@ from datetime import datetime
 
 class Priority(Enum):
     """测试用例优先级"""
-    P0 = "P0"  # 核心主流程、系统崩溃级缺陷
-    P1 = "P1"  # 主要备选流程、关键边界值
-    P2 = "P2"  # 次要异常流、UI验证
+    P0 = "P0"
+    P1 = "P1"
+    P2 = "P2"
 
 class TestMethod(Enum):
     """测试设计方法"""
@@ -73,12 +73,7 @@ class TestCaseGenerator:
     """功能测试用例生成器"""
     
     def __init__(self, custom_headers: Optional[Dict[str, str]] = None):
-        """
-        初始化测试用例生成器
-        
-        Args:
-            custom_headers: 自定义字段标题，如 {"Module": "功能模块", "CaseID": "测试编号"}
-        """
+        """初始化测试用例生成器"""
         self.default_headers = {
             "Module": "模块",
             "Submodule": "子模块",
@@ -102,16 +97,8 @@ class TestCaseGenerator:
         self.method_stats = {method: 0 for method in TestMethod}
         
     def analyze_requirements(self, requirement_text: str) -> RequirementAnalysis:
-        """
-        分析需求文档，提取关键信息
-        
-        Args:
-            requirement_text: 需求文档内容
-            
-        Returns:
-            RequirementAnalysis: 分析结果
-        """
-        # 简化的需求分析逻辑，实际项目中可以使用NLP技术
+        """分析需求文档，提取关键信息"""
+
         modules = self._extract_modules(requirement_text)
         business_rules = self._extract_business_rules(requirement_text)
         input_fields = self._extract_input_fields(requirement_text)

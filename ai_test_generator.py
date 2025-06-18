@@ -378,7 +378,7 @@ class AITestCaseGenerator(TestCaseGenerator):
         self._adjust_risk_based_priority(basic_cases + ai_cases, ai_analysis)
 
         # 7. 覆盖度优化
-        optimized_cases = self._optimize_coverage(basic_cases + ai_cases, ai_analysis)
+        self._optimize_coverage(basic_cases + ai_cases, ai_analysis)
 
         # 8. 智能回归测试
         regression_cases = self._generate_intelligent_regression_cases(ai_analysis, historical_defects, business_modules)
@@ -690,7 +690,6 @@ class AITestCaseGenerator(TestCaseGenerator):
     def _adjust_risk_based_priority(self, test_cases: List[TestCase], ai_analysis: AIAnalysisResult):
         """基于风险调整优先级"""
         high_risk_keywords = ["安全", "支付", "认证", "权限", "数据"]
-        medium_risk_keywords = ["性能", "并发", "集成", "同步"]
 
         for case in test_cases:
             # 检查是否涉及高风险区域
