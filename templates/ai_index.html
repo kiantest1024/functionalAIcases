@@ -247,6 +247,9 @@
                 <h3><i class="bi bi-rocket"></i> 体验AI增强测试用例生成</h3>
                 <p class="lead">选择适合您的AI增强方式，开始生成更智能、更全面的功能测试用例</p>
                 <div class="d-flex justify-content-center gap-3 flex-wrap">
+                    <a href="{{ url_for('professional_generate') }}" class="btn btn-success btn-lg">
+                        <i class="bi bi-award"></i> 专业生成
+                    </a>
                     <a href="{{ url_for('ai_generate') }}" class="btn btn-light btn-lg">
                         <i class="bi bi-robot"></i> AI智能生成
                     </a>
@@ -255,9 +258,6 @@
                     </a>
                     <a href="{{ url_for('ai_config') }}" class="btn btn-outline-light btn-lg">
                         <i class="bi bi-gear"></i> AI配置
-                    </a>
-                    <a href="http://localhost:5000/generate" class="btn btn-outline-light btn-lg">
-                        <i class="bi bi-tools"></i> 传统方式
                     </a>
                 </div>
 

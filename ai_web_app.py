@@ -5,19 +5,16 @@ AI增强功能测试用例生成器 - Web版本
 结合人工智能和所有测试设计方法的Web应用
 """
 
-from flask import Flask, render_template, request, jsonify, send_file, flash, redirect, url_for
+from flask import Flask, render_template, request, jsonify, send_file, flash, redirect, url_for, Response
 import os
 import json
-import tempfile
 import time
 from datetime import datetime
-import io
-import zipfile
-from ai_test_generator import AITestCaseGenerator
+from ai_test_generator import AITestMethod
 from comprehensive_test_generator import ComprehensiveTestGenerator
-from ai_test_generator import AITestMethod, AIAnalysisResult
 from real_ai_generator import RealAITestCaseGenerator, AIProvider, AIConfig
 from ai_config_manager import config_manager
+from professional_test_generator import ProfessionalTestGenerator
 
 app = Flask(__name__)
 app.secret_key = 'ai_test_case_generator_secret_key_2025'
@@ -122,35 +119,19 @@ def ai_generate():
         excel_filename = f"ai_test_cases_{timestamp}.xlsx"
         excel_path = os.path.join(app.config['OUTPUT_FOLDER'], excel_filename)
 
-        print(f"📊 准备生成Excel文件: {excel_filename}")
-        print(f"📁 Excel文件路径: {excel_path}")
-
         try:
             ai_generator.export_to_excel(excel_path)
-            if os.path.exists(excel_path):
-                file_size = os.path.getsize(excel_path)
-                print(f"✅ Excel文件生成成功: {excel_path} ({file_size} bytes)")
-            else:
-                print(f"❌ Excel文件生成失败: 文件不存在 {excel_path}")
         except Exception as e:
-            print(f"❌ Excel文件生成异常: {e}")
+            print(f"Excel生成失败: {e}")
 
         # AI增强报告
         ai_report_filename = f"ai_enhanced_report_{timestamp}.md"
         ai_report_path = os.path.join(app.config['OUTPUT_FOLDER'], ai_report_filename)
 
-        print(f"📝 准备生成Markdown报告: {ai_report_filename}")
-        print(f"📁 Markdown文件路径: {ai_report_path}")
-
         try:
             ai_generator.export_ai_enhanced_report(ai_report_path)
-            if os.path.exists(ai_report_path):
-                file_size = os.path.getsize(ai_report_path)
-                print(f"✅ Markdown报告生成成功: {ai_report_path} ({file_size} bytes)")
-            else:
-                print(f"❌ Markdown报告生成失败: 文件不存在 {ai_report_path}")
         except Exception as e:
-            print(f"❌ Markdown报告生成异常: {e}")
+            print(f"Markdown报告生成失败: {e}")
         
         # 生成统计信息
         stats = generate_ai_statistics(test_cases, ai_analysis)
@@ -325,29 +306,15 @@ def download_file(filename):
     try:
         file_path = os.path.join(app.config['OUTPUT_FOLDER'], filename)
 
-        print(f"🔍 下载请求: {filename}")
-        print(f"📁 完整路径: {file_path}")
-        print(f"📂 输出目录: {app.config['OUTPUT_FOLDER']}")
-
-        # 首先检查文件是否存在
         if os.path.exists(file_path):
-            print(f"✅ 文件存在，开始下载")
-            # 使用绝对路径确保Flask能找到文件
             abs_file_path = os.path.abspath(file_path)
-            print(f"📁 使用绝对路径: {abs_file_path}")
-
-            # 再次验证绝对路径文件存在
             if os.path.exists(abs_file_path):
                 try:
                     return send_file(abs_file_path, as_attachment=True)
-                except Exception as e:
-                    print(f"❌ send_file失败: {e}")
-                    # 如果send_file失败，尝试手动读取文件
+                except Exception:
                     try:
-                        from flask import Response
                         with open(abs_file_path, 'rb') as f:
                             file_data = f.read()
-
                         response = Response(
                             file_data,
                             mimetype='application/octet-stream',
@@ -356,25 +323,17 @@ def download_file(filename):
                                 'Content-Length': len(file_data)
                             }
                         )
-                        print(f"✅ 使用手动读取方式下载文件")
                         return response
-                    except Exception as e2:
-                        print(f"❌ 手动读取也失败: {e2}")
-            else:
-                print(f"❌ 绝对路径文件不存在: {abs_file_path}")
+                    except Exception:
+                        pass
 
-        # 如果文件不存在，尝试查找类似的文件
-        print(f"⚠️ 文件不存在: {file_path}")
-
-        # 列出outputs目录中的所有文件
+        # 查找类似文件
         output_dir = app.config['OUTPUT_FOLDER']
-        if os.path.exists(output_dir):
-            all_files = os.listdir(output_dir)
-            print(f"📄 目录中的文件: {all_files}")
-        else:
-            print(f"❌ 输出目录不存在: {output_dir}")
+        if not os.path.exists(output_dir):
             flash('输出目录不存在', 'error')
             return redirect(url_for('index'))
+
+        all_files = os.listdir(output_dir)
 
         # 提取文件名模式（去掉时间戳）
         if filename.startswith('ai_test_cases_'):
@@ -390,35 +349,18 @@ def download_file(filename):
             pattern = None
             extension = None
 
-        print(f"🔍 查找模式: {pattern}{extension}")
-
         # 查找最新的匹配文件
         if pattern and extension:
             matching_files = [f for f in all_files if f.startswith(pattern) and f.endswith(extension)]
-            print(f"📋 匹配的文件: {matching_files}")
-
             if matching_files:
-                # 按修改时间排序，获取最新的文件
                 latest_file = max(matching_files, key=lambda f: os.path.getmtime(os.path.join(output_dir, f)))
                 latest_path = os.path.join(output_dir, latest_file)
-
-                print(f"✅ 找到最新文件: {latest_file}")
-                print(f"📁 最新文件路径: {latest_path}")
-
                 if os.path.exists(latest_path):
                     return send_file(latest_path, as_attachment=True)
-                else:
-                    print(f"❌ 最新文件不存在: {latest_path}")
-
-        # 如果还是找不到，返回错误
-        print(f"❌ 无法找到匹配的文件")
         flash(f'文件不存在: {filename}。请重新生成测试用例。', 'error')
         return redirect(url_for('ai_generate'))
 
     except Exception as e:
-        print(f"❌ 下载文件异常: {e}")
-        import traceback
-        traceback.print_exc()
         flash(f'下载文件时发生错误: {str(e)}', 'error')
         return redirect(url_for('ai_generate'))
 
@@ -481,20 +423,109 @@ def get_complexity_level(score):
 def generate_ai_recommendations(ai_analysis):
     """生成AI建议"""
     recommendations = []
-    
+
     if ai_analysis.complexity_score > 0.8:
         recommendations.append("系统复杂度较高，建议增加集成测试和端到端测试")
-    
+
     if len(ai_analysis.security_risks) > 3:
         recommendations.append("检测到多个安全风险，建议进行专项安全测试")
-    
+
     if len(ai_analysis.performance_concerns) > 2:
         recommendations.append("存在多个性能关注点，建议进行性能压力测试")
-    
+
     if len(ai_analysis.integration_points) > 5:
         recommendations.append("集成点较多，建议重点关注接口测试和数据一致性")
-    
+
     return recommendations
+
+def generate_professional_statistics(test_cases):
+    """生成专业测试用例统计信息"""
+    stats = {
+        'total_cases': len(test_cases),
+        'test_type_stats': {},
+        'priority_stats': {},
+        'module_stats': {},
+        'quality_metrics': {}
+    }
+
+    # 测试类型统计
+    for case in test_cases:
+        test_type = case.test_type
+        stats['test_type_stats'][test_type] = stats['test_type_stats'].get(test_type, 0) + 1
+
+    # 优先级统计
+    for case in test_cases:
+        priority = case.priority
+        stats['priority_stats'][priority] = stats['priority_stats'].get(priority, 0) + 1
+
+    # 模块统计
+    for case in test_cases:
+        module = case.feature_module
+        stats['module_stats'][module] = stats['module_stats'].get(module, 0) + 1
+
+    # 质量指标
+    cases_with_requirements = sum(1 for case in test_cases if case.related_requirement_id)
+    cases_with_notes = sum(1 for case in test_cases if case.notes)
+    avg_steps = sum(len(case.test_steps.split('\n')) for case in test_cases) / len(test_cases) if test_cases else 0
+
+    stats['quality_metrics'] = {
+        'requirement_coverage': cases_with_requirements / len(test_cases) * 100 if test_cases else 0,
+        'documentation_rate': cases_with_notes / len(test_cases) * 100 if test_cases else 0,
+        'avg_steps_per_case': round(avg_steps, 1)
+    }
+
+    return stats
+
+@app.route('/professional_generate', methods=['GET', 'POST'])
+def professional_generate():
+    """专业测试用例生成页面"""
+    if request.method == 'GET':
+        return render_template('professional_generate.html')
+
+    try:
+        # 获取表单数据
+        requirement_text = request.form.get('requirement_text', '').strip()
+
+        if not requirement_text:
+            flash('请输入需求文档内容', 'error')
+            return redirect(url_for('professional_generate'))
+
+        # 创建专业测试生成器
+        ai_config = config_manager.load_config()
+        professional_generator = ProfessionalTestGenerator(ai_config)
+
+        # 生成专业测试用例
+        print("🚀 开始专业测试用例生成...")
+        test_cases = professional_generator.generate_professional_test_cases(requirement_text)
+
+        # 生成文件
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+
+        # Excel文件
+        excel_filename = f"professional_test_cases_{timestamp}.xlsx"
+        excel_path = os.path.join(app.config['OUTPUT_FOLDER'], excel_filename)
+        professional_generator.export_to_excel(excel_path)
+
+        # Markdown报告
+        md_filename = f"professional_report_{timestamp}.md"
+        md_path = os.path.join(app.config['OUTPUT_FOLDER'], md_filename)
+        professional_generator.export_to_markdown(md_path)
+
+        # 生成统计信息
+        stats = generate_professional_statistics(test_cases)
+
+        flash(f'成功生成 {len(test_cases)} 个专业测试用例', 'success')
+
+        return render_template('professional_result.html',
+                             test_cases=test_cases[:10],  # 只显示前10个
+                             stats=stats,
+                             total_cases=len(test_cases),
+                             excel_file=excel_filename,
+                             md_file=md_filename)
+
+    except Exception as e:
+        flash(f'专业测试用例生成时发生错误: {str(e)}', 'error')
+        return redirect(url_for('professional_generate'))
 
 @app.route('/ai_config')
 def ai_config():
