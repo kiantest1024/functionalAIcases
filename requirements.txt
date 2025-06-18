@@ -1,0 +1,17 @@
+# 功能测试用例生成器依赖包
+
+# Web框架
+Flask==2.3.3
+
+# 数据处理
+pandas==2.0.3
+
+# HTTP请求
+requests==2.31.0
+
+# Excel处理
+openpyxl==3.1.2
+
+# 可选：AI服务支持
+# openai>=1.0.0
+# anthropic>=0.3.0

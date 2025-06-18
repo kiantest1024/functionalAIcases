@@ -1,0 +1,379 @@
+{% extends "ai_base.html" %}
+
+{% block title %}AI生成结果 - 功能测试用例生成器{% endblock %}
+
+{% block content %}
+<!-- AI成功提示 -->
+<div class="alert alert-success" role="alert">
+    <h4 class="alert-heading">
+        <i class="bi bi-robot"></i> AI智能生成成功！
+    </h4>
+    <p>AI已成功分析需求并生成 <strong>{{ total_cases }}</strong> 个功能测试用例</p>
+    <p><strong>复杂度评分：</strong>{{ "%.2f"|format(ai_analysis.complexity_score) }}/1.0 
+       <span class="badge bg-{{ 'danger' if ai_analysis.complexity_score > 0.7 else 'warning' if ai_analysis.complexity_score > 0.4 else 'success' }}">
+           {{ stats.complexity_level }}复杂度
+       </span>
+    </p>
+    <hr>
+    <div class="d-flex gap-2">
+        <a href="{{ url_for('download_file', filename=excel_file) }}" class="btn btn-success">
+            <i class="bi bi-file-earmark-spreadsheet"></i> 下载Excel文件
+        </a>
+        <a href="{{ url_for('download_file', filename=ai_report_file) }}" class="btn btn-outline-success">
+            <i class="bi bi-file-earmark-text"></i> 下载AI增强报告
+        </a>
+    </div>
+</div>
+
+<!-- AI分析结果 -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header bg-gradient text-white" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+                <h5 class="mb-0">
+                    <i class="bi bi-brain"></i> AI智能分析结果
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <!-- 复杂度分析 -->
+                    <div class="col-md-4 mb-3">
+                        <h6><i class="bi bi-speedometer2 text-primary"></i> 复杂度分析</h6>
+                        <div class="progress mb-2" style="height: 20px;">
+                            <div class="progress-bar bg-{{ 'danger' if ai_analysis.complexity_score > 0.7 else 'warning' if ai_analysis.complexity_score > 0.4 else 'success' }}" 
+                                 style="width: {{ ai_analysis.complexity_score * 100 }}%">
+                                {{ "%.1f"|format(ai_analysis.complexity_score * 100) }}%
+                            </div>
+                        </div>
+                        <small class="text-muted">评分: {{ "%.2f"|format(ai_analysis.complexity_score) }} ({{ stats.complexity_level }}复杂度)</small>
+                    </div>
+                    
+                    <!-- 风险覆盖 -->
+                    <div class="col-md-4 mb-3">
+                        <h6><i class="bi bi-shield-check text-warning"></i> 风险覆盖</h6>
+                        {% if stats.risk_coverage %}
+                        <div class="progress mb-2" style="height: 20px;">
+                            <div class="progress-bar bg-warning" 
+                                 style="width: {{ stats.risk_coverage.coverage_rate }}%">
+                                {{ "%.1f"|format(stats.risk_coverage.coverage_rate) }}%
+                            </div>
+                        </div>
+                        <small class="text-muted">{{ stats.risk_coverage.covered_risks }}/{{ stats.risk_coverage.total_risks }} 风险区域已覆盖</small>
+                        {% else %}
+                        <p class="text-muted">未识别到特定风险区域</p>
+                        {% endif %}
+                    </div>
+                    
+                    <!-- AI增强率 -->
+                    <div class="col-md-4 mb-3">
+                        <h6><i class="bi bi-cpu text-info"></i> AI增强率</h6>
+                        <div class="progress mb-2" style="height: 20px;">
+                            <div class="progress-bar bg-info" 
+                                 style="width: {{ stats.enhancement_metrics.enhancement_rate }}%">
+                                {{ "%.1f"|format(stats.enhancement_metrics.enhancement_rate) }}%
+                            </div>
+                        </div>
+                        <small class="text-muted">{{ stats.enhancement_metrics.ai_enhanced_cases }}/{{ total_cases }} 用例使用AI增强</small>
+                    </div>
+                </div>
+                
+                <!-- 详细分析信息 -->
+                <div class="row mt-3">
+                    {% if ai_analysis.risk_areas %}
+                    <div class="col-md-6">
+                        <h6><i class="bi bi-exclamation-triangle text-warning"></i> 识别的风险区域</h6>
+                        <div class="d-flex flex-wrap gap-1">
+                            {% for risk in ai_analysis.risk_areas %}
+                            <span class="badge bg-warning">{{ risk }}</span>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    {% endif %}
+                    
+                    {% if ai_analysis.critical_paths %}
+                    <div class="col-md-6">
+                        <h6><i class="bi bi-diagram-3 text-info"></i> 关键路径</h6>
+                        <div class="d-flex flex-wrap gap-1">
+                            {% for path in ai_analysis.critical_paths[:3] %}
+                            <span class="badge bg-info">{{ path[:30] }}...</span>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 统计信息 -->
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="card stats-card text-center">
+            <div class="card-body">
+                <h3 class="text-primary">{{ stats.total_cases }}</h3>
+                <p class="text-muted mb-0">总测试用例</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card stats-card text-center">
+            <div class="card-body">
+                <h3 class="text-success">{{ stats.priority_stats.get('P0', 0) }}</h3>
+                <p class="text-muted mb-0">P0高优先级</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card stats-card text-center">
+            <div class="card-body">
+                <h3 class="text-warning">{{ stats.priority_stats.get('P1', 0) }}</h3>
+                <p class="text-muted mb-0">P1中优先级</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card stats-card text-center">
+            <div class="card-body">
+                <h3 class="text-info">{{ stats.enhancement_metrics.ai_enhanced_cases }}</h3>
+                <p class="text-muted mb-0">AI增强用例</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- AI方法应用图表 -->
+{% if stats.ai_method_stats %}
+<div class="row mb-4">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="bi bi-pie-chart"></i> 优先级分布
+                </h5>
+            </div>
+            <div class="card-body">
+                <canvas id="priorityChart" width="400" height="200"></canvas>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="bi bi-robot"></i> AI方法应用
+                </h5>
+            </div>
+            <div class="card-body">
+                <canvas id="aiMethodChart" width="400" height="200"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- 测试用例预览 -->
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="bi bi-list-ul"></i> AI生成的测试用例预览 (前10个)
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-striped table-hover">
+                        <thead class="table-dark">
+                            <tr>
+                                <th>用例编号</th>
+                                <th>模块</th>
+                                <th>子模块</th>
+                                <th>优先级</th>
+                                <th>AI方法</th>
+                                <th>操作</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for case in test_cases %}
+                            <tr>
+                                <td><code>{{ case.case_id }}</code></td>
+                                <td>{{ case.module }}</td>
+                                <td>{{ case.submodule }}</td>
+                                <td>
+                                    <span class="badge bg-{{ 'danger' if case.priority.value == 'P0' else 'warning' if case.priority.value == 'P1' else 'info' }}">
+                                        {{ case.priority.value }}
+                                    </span>
+                                </td>
+                                <td>
+                                    <small class="text-muted">{{ case.remark[:50] }}...</small>
+                                </td>
+                                <td>
+                                    <button class="btn btn-sm btn-outline-primary" 
+                                            data-bs-toggle="modal" 
+                                            data-bs-target="#caseModal{{ loop.index }}">
+                                        <i class="bi bi-eye"></i> 查看详情
+                                    </button>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                
+                {% if total_cases > 10 %}
+                <div class="alert alert-info mt-3">
+                    <i class="bi bi-info-circle"></i> 
+                    仅显示前10个测试用例，完整的{{ total_cases }}个用例请下载Excel或AI增强报告查看
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 操作按钮 -->
+<div class="row mt-4">
+    <div class="col-12 text-center">
+        <div class="d-flex justify-content-center gap-3">
+            <a href="{{ url_for('ai_generate') }}" class="btn btn-primary">
+                <i class="bi bi-robot"></i> 生成新的AI用例
+            </a>
+            <a href="{{ url_for('ai_smart_template') }}" class="btn btn-outline-primary">
+                <i class="bi bi-lightbulb"></i> AI智能模板
+            </a>
+            <a href="{{ url_for('index') }}" class="btn btn-outline-secondary">
+                <i class="bi bi-house"></i> 返回首页
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- 测试用例详情模态框 -->
+{% for case in test_cases %}
+<div class="modal fade" id="caseModal{{ loop.index }}" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="bi bi-robot"></i> {{ case.case_id }} - AI生成测试用例详情
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <strong>模块：</strong> {{ case.module }}
+                    </div>
+                    <div class="col-md-6">
+                        <strong>子模块：</strong> {{ case.submodule }}
+                    </div>
+                </div>
+                <hr>
+                <div class="mb-3">
+                    <strong>前置条件：</strong>
+                    <p class="text-muted">{{ case.precondition }}</p>
+                </div>
+                <div class="mb-3">
+                    <strong>测试步骤：</strong>
+                    <pre class="bg-light p-2 rounded">{{ case.test_steps }}</pre>
+                </div>
+                <div class="mb-3">
+                    <strong>预期结果：</strong>
+                    <p class="text-muted">{{ case.expected }}</p>
+                </div>
+                <div class="row">
+                    <div class="col-md-6">
+                        <strong>优先级：</strong>
+                        <span class="badge bg-{{ 'danger' if case.priority.value == 'P0' else 'warning' if case.priority.value == 'P1' else 'info' }}">
+                            {{ case.priority.value }}
+                        </span>
+                    </div>
+                    <div class="col-md-6">
+                        <strong>AI方法：</strong>
+                        <small class="text-muted">{{ case.remark }}</small>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">关闭</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endfor %}
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+// 优先级分布饼图
+const priorityCtx = document.getElementById('priorityChart').getContext('2d');
+const priorityChart = new Chart(priorityCtx, {
+    type: 'doughnut',
+    data: {
+        labels: ['P0 (高)', 'P1 (中)', 'P2 (低)'],
+        datasets: [{
+            data: [
+                {{ stats.priority_stats.get('P0', 0) }},
+                {{ stats.priority_stats.get('P1', 0) }},
+                {{ stats.priority_stats.get('P2', 0) }}
+            ],
+            backgroundColor: ['#dc3545', '#ffc107', '#17a2b8'],
+            borderWidth: 2,
+            borderColor: '#fff'
+        }]
+    },
+    options: {
+        responsive: true,
+        plugins: {
+            legend: {
+                position: 'bottom'
+            }
+        }
+    }
+});
+
+// AI方法应用图表
+{% if stats.ai_method_stats %}
+const aiMethodCtx = document.getElementById('aiMethodChart').getContext('2d');
+const aiMethodChart = new Chart(aiMethodCtx, {
+    type: 'bar',
+    data: {
+        labels: [
+            {% for method, count in stats.ai_method_stats.items() %}
+            '{{ method[:10] }}...',
+            {% endfor %}
+        ],
+        datasets: [{
+            label: 'AI增强用例数',
+            data: [
+                {% for method, count in stats.ai_method_stats.items() %}
+                {{ count }},
+                {% endfor %}
+            ],
+            backgroundColor: 'rgba(102, 126, 234, 0.8)',
+            borderColor: 'rgba(102, 126, 234, 1)',
+            borderWidth: 1
+        }]
+    },
+    options: {
+        responsive: true,
+        scales: {
+            y: {
+                beginAtZero: true,
+                ticks: {
+                    stepSize: 1
+                }
+            }
+        },
+        plugins: {
+            legend: {
+                display: false
+            }
+        }
+    }
+});
+{% endif %}
+</script>
+{% endblock %}

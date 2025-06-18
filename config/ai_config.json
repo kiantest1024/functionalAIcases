@@ -1,0 +1,10 @@
+{
+  "provider": "deepseek",
+  "api_key": "sk-265a7875b030482b8ca5ca7a8276c139",
+  "base_url": "https://api.deepseek.com/v1",
+  "model": "deepseek-chat",
+  "max_tokens": 4000,
+  "temperature": 0.7,
+  "timeout": 30,
+  "saved_at": "2025-06-16T17:25:42.460971"
+}

@@ -1,0 +1,241 @@
+{% extends "ai_base.html" %}
+
+{% block title %}AI智能模板 - 功能测试用例生成器{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header bg-gradient text-white" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+                <h4 class="mb-0">
+                    <i class="bi bi-lightbulb"></i> AI智能模板生成
+                </h4>
+            </div>
+            <div class="card-body">
+                <div class="alert alert-info" role="alert">
+                    <h6 class="alert-heading"><i class="bi bi-robot"></i> AI智能模板特性</h6>
+                    <p class="mb-0">
+                        选择预定义的需求模板，AI将自动分析模板复杂度，应用智能增强选项，
+                        生成更专业、更全面的测试用例。
+                    </p>
+                </div>
+                
+                <form method="POST" action="{{ url_for('ai_generate_from_smart_template') }}">
+                    <!-- 模板选择 -->
+                    <div class="mb-4">
+                        <label for="template_name" class="form-label">
+                            <i class="bi bi-collection"></i> 选择AI智能模板 <span class="text-danger">*</span>
+                        </label>
+                        <div class="row">
+                            {% for key, template in templates.items() %}
+                            <div class="col-md-6 mb-3">
+                                <div class="card template-card">
+                                    <div class="card-body">
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="radio" 
+                                                   name="template_name" id="template_{{ key }}" 
+                                                   value="{{ key }}" required>
+                                            <label class="form-check-label" for="template_{{ key }}">
+                                                <h6 class="card-title">
+                                                    <i class="bi bi-robot text-primary"></i> {{ template.title }}
+                                                </h6>
+                                                <p class="card-text text-muted small">
+                                                    {{ template.content[:100] }}...
+                                                </p>
+                                                <div class="mt-2">
+                                                    <span class="badge bg-primary">AI增强</span>
+                                                    <span class="badge bg-success">智能分析</span>
+                                                </div>
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                        {% if not templates %}
+                        <div class="alert alert-warning">
+                            <i class="bi bi-exclamation-triangle"></i> 
+                            暂无可用模板，请检查配置文件
+                        </div>
+                        {% endif %}
+                    </div>
+
+                    <!-- AI增强选项 -->
+                    <div class="mb-4">
+                        <label class="form-label">
+                            <i class="bi bi-cpu"></i> AI增强选项
+                        </label>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" name="ai_enhancement_options" 
+                                           value="deep_analysis" id="deep_analysis" checked>
+                                    <label class="form-check-label" for="deep_analysis">
+                                        <strong>深度分析模式</strong>
+                                        <small class="text-muted d-block">启用完整的AI需求分析和复杂度评估</small>
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" name="ai_enhancement_options" 
+                                           value="risk_prioritization" id="risk_prioritization" checked>
+                                    <label class="form-check-label" for="risk_prioritization">
+                                        <strong>风险优先级调整</strong>
+                                        <small class="text-muted d-block">基于风险识别智能调整测试用例优先级</small>
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" name="ai_enhancement_options" 
+                                           value="coverage_optimization" id="coverage_optimization" checked>
+                                    <label class="form-check-label" for="coverage_optimization">
+                                        <strong>覆盖度优化</strong>
+                                        <small class="text-muted d-block">自动补充测试用例提高覆盖度</small>
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" name="ai_enhancement_options" 
+                                           value="predictive_testing" id="predictive_testing">
+                                    <label class="form-check-label" for="predictive_testing">
+                                        <strong>预测性测试</strong>
+                                        <small class="text-muted d-block">基于模式预测潜在错误场景</small>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 自定义参数 -->
+                    <div class="mb-4">
+                        <label for="custom_params" class="form-label">
+                            <i class="bi bi-gear"></i> 自定义参数 <span class="text-muted">(可选)</span>
+                        </label>
+                        <textarea class="form-control" id="custom_params" name="custom_params" 
+                                rows="4" placeholder='JSON格式，用于替换模板中的占位符，例如：
+
+{
+    "system_name": "电商系统",
+    "max_users": "1000",
+    "timeout": "30秒"
+}'></textarea>
+                        <div class="form-text">
+                            <i class="bi bi-info-circle"></i> 
+                            使用JSON格式定义参数，将替换模板中对应的占位符
+                        </div>
+                    </div>
+
+                    <!-- 提交按钮 -->
+                    <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                        <a href="{{ url_for('index') }}" class="btn btn-outline-secondary me-md-2">
+                            <i class="bi bi-arrow-left"></i> 返回首页
+                        </a>
+                        <button type="submit" class="btn btn-primary btn-lg">
+                            <i class="bi bi-lightbulb"></i> AI智能生成
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 模板预览 -->
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="bi bi-eye"></i> AI智能模板预览
+                </h5>
+            </div>
+            <div class="card-body">
+                <div id="template-preview">
+                    <p class="text-muted">请选择一个AI智能模板查看详细内容</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// 模板预览功能
+const templates = {{ templates|tojson }};
+
+document.addEventListener('DOMContentLoaded', function() {
+    const templateRadios = document.querySelectorAll('input[name="template_name"]');
+    const previewDiv = document.getElementById('template-preview');
+    
+    templateRadios.forEach(function(radio) {
+        radio.addEventListener('change', function() {
+            if (this.checked) {
+                const templateKey = this.value;
+                const template = templates[templateKey];
+                
+                previewDiv.innerHTML = `
+                    <div class="alert alert-info">
+                        <h6><i class="bi bi-robot"></i> AI智能模板: ${template.title}</h6>
+                        <p class="mb-0">AI将自动分析此模板的复杂度和风险，应用智能增强策略</p>
+                    </div>
+                    <pre class="bg-light p-3 rounded">${template.content}</pre>
+                `;
+            }
+        });
+    });
+    
+    // 模板卡片点击效果
+    const templateCards = document.querySelectorAll('.template-card');
+    templateCards.forEach(function(card) {
+        card.addEventListener('click', function() {
+            const radio = this.querySelector('input[type="radio"]');
+            radio.checked = true;
+            radio.dispatchEvent(new Event('change'));
+            
+            // 更新卡片样式
+            templateCards.forEach(c => c.classList.remove('border-primary'));
+            this.classList.add('border-primary');
+        });
+    });
+});
+
+// JSON格式验证
+document.getElementById('custom_params').addEventListener('blur', function() {
+    const value = this.value.trim();
+    if (value && value !== '') {
+        try {
+            JSON.parse(value);
+            this.classList.remove('is-invalid');
+            this.classList.add('is-valid');
+        } catch (e) {
+            this.classList.remove('is-valid');
+            this.classList.add('is-invalid');
+        }
+    } else {
+        this.classList.remove('is-invalid', 'is-valid');
+    }
+});
+</script>
+
+<style>
+.template-card {
+    cursor: pointer;
+    transition: all 0.2s;
+    border: 2px solid transparent;
+}
+
+.template-card:hover {
+    border-color: #dee2e6;
+    transform: translateY(-2px);
+}
+
+.template-card.border-primary {
+    border-color: #0d6efd !important;
+}
+</style>
+{% endblock %}
