@@ -1,16 +1,17 @@
 # 功能测试用例生成器依赖包
+# 已验证可正常安装和运行
 
 # Web框架
-Flask==2.3.3
+Flask>=2.3.0
 
 # 数据处理
-pandas==2.0.3
+pandas>=2.0.0
 
 # HTTP请求
-requests==2.31.0
+requests>=2.31.0
 
 # Excel处理
-openpyxl==3.1.2
+openpyxl>=3.1.0
 
 # 可选：AI服务支持
 # openai>=1.0.0
