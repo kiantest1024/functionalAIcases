@@ -11,10 +11,10 @@ from typing import Dict, List, Optional
 from dataclasses import dataclass
 from datetime import datetime
 
-from real_ai_generator import RealAITestCaseGenerator, AIConfig
-from comprehensive_test_generator import ComprehensiveTestGenerator
-from test_case_generator import TestCase, Priority, TestMethod
-from professional_ai_prompt import ProfessionalAIPrompt
+from .real_ai_generator import RealAITestCaseGenerator, AIConfig
+from .comprehensive_test_generator import ComprehensiveTestGenerator
+from .test_case_generator import TestCase, Priority, TestMethod
+from .professional_ai_prompt import ProfessionalAIPrompt
 
 @dataclass
 class ProfessionalTestCase:

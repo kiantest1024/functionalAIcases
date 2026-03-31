@@ -1,15 +1,14 @@
 {% extends "ai_base.html" %}
 
-{% block title %}AI智能模板生成结果 - 功能测试用例生成器{% endblock %}
+{% block title %}{{ texts.get('smart_template_result_page_title', 'AI Smart Template Results') }} - {{ texts.get('app_name', 'AI Test Case Generator') }}{% endblock %}
 
 {% block content %}
-<!-- AI智能模板成功提示 -->
 <div class="alert alert-success" role="alert">
     <h4 class="alert-heading">
-        <i class="bi bi-lightbulb"></i> AI智能模板生成成功！
+        <i class="bi bi-lightbulb"></i> {{ texts.get('smart_template_success_title', '') }}
     </h4>
-    <p>已成功从AI智能模板"<strong>{{ template_title }}</strong>"生成 <strong>{{ total_cases }}</strong> 个功能测试用例</p>
-    <p><strong>AI增强选项：</strong>
+    <p>{{ texts.get('smart_template_success_body', '').replace('{title}', template_title).replace('{count}', total_cases|string) }}</p>
+    <p><strong>{{ texts.get('template_enhancement_options', '') }}:</strong>
         {% for option in enhancement_options %}
         <span class="badge bg-primary me-1">{{ option }}</span>
         {% endfor %}
@@ -17,40 +16,42 @@
     <hr>
     <div class="d-flex gap-2">
         <a href="{{ url_for('download_file', filename=excel_file) }}" class="btn btn-success">
-            <i class="bi bi-file-earmark-spreadsheet"></i> 下载Excel文件
+            <i class="bi bi-file-earmark-spreadsheet"></i> {{ texts.get('download_excel_file', 'Download Excel') }}
         </a>
+        {% if ai_report_file %}
         <a href="{{ url_for('download_file', filename=ai_report_file) }}" class="btn btn-outline-success">
-            <i class="bi bi-file-earmark-text"></i> 下载AI增强报告
+            <i class="bi bi-file-earmark-text"></i> {{ texts.get('download_ai_report', 'Download report') }}
         </a>
+        {% else %}
+        <button class="btn btn-outline-secondary" disabled title="{{ texts.get('report_failed_title', '') }}">
+            <i class="bi bi-file-earmark-text"></i> {{ texts.get('ai_report_unavailable', '') }}
+        </button>
+        {% endif %}
     </div>
 </div>
 
-<!-- AI分析结果 -->
 <div class="row mb-4">
     <div class="col-12">
         <div class="card">
             <div class="card-header bg-gradient text-white" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
                 <h5 class="mb-0">
-                    <i class="bi bi-brain"></i> AI智能分析结果
+                    <i class="bi bi-brain"></i> {{ texts.get('ai_analysis_results', '') }}
                 </h5>
             </div>
             <div class="card-body">
                 <div class="row">
-                    <!-- 复杂度分析 -->
                     <div class="col-md-4 mb-3">
-                        <h6><i class="bi bi-speedometer2 text-primary"></i> 复杂度分析</h6>
+                        <h6><i class="bi bi-speedometer2 text-primary"></i> {{ texts.get('complexity_analysis', '') }}</h6>
                         <div class="progress mb-2" style="height: 20px;">
                             <div class="progress-bar bg-{{ 'danger' if ai_analysis.complexity_score > 0.7 else 'warning' if ai_analysis.complexity_score > 0.4 else 'success' }}" 
                                  style="width: {{ ai_analysis.complexity_score * 100 }}%">
                                 {{ "%.1f"|format(ai_analysis.complexity_score * 100) }}%
                             </div>
                         </div>
-                        <small class="text-muted">评分: {{ "%.2f"|format(ai_analysis.complexity_score) }} ({{ stats.complexity_level }}复杂度)</small>
+                        <small class="text-muted">{{ texts.get('score', '') }}: {{ "%.2f"|format(ai_analysis.complexity_score) }} ({{ stats.complexity_level }} {{ texts.get('complexity', '') }})</small>
                     </div>
-                    
-                    <!-- 风险覆盖 -->
                     <div class="col-md-4 mb-3">
-                        <h6><i class="bi bi-shield-check text-warning"></i> 风险覆盖</h6>
+                        <h6><i class="bi bi-shield-check text-warning"></i> {{ texts.get('risk_coverage', '') }}</h6>
                         {% if stats.risk_coverage %}
                         <div class="progress mb-2" style="height: 20px;">
                             <div class="progress-bar bg-warning" 
@@ -58,30 +59,26 @@
                                 {{ "%.1f"|format(stats.risk_coverage.coverage_rate) }}%
                             </div>
                         </div>
-                        <small class="text-muted">{{ stats.risk_coverage.covered_risks }}/{{ stats.risk_coverage.total_risks }} 风险区域已覆盖</small>
+                        <small class="text-muted">{{ stats.risk_coverage.covered_risks }}/{{ stats.risk_coverage.total_risks }} {{ texts.get('risk_areas_covered', '') }}</small>
                         {% else %}
-                        <p class="text-muted">未识别到特定风险区域</p>
+                        <p class="text-muted">{{ texts.get('no_specific_risks', '') }}</p>
                         {% endif %}
                     </div>
-                    
-                    <!-- AI增强率 -->
                     <div class="col-md-4 mb-3">
-                        <h6><i class="bi bi-cpu text-info"></i> AI增强率</h6>
+                        <h6><i class="bi bi-cpu text-info"></i> {{ texts.get('ai_enhancement_rate', '') }}</h6>
                         <div class="progress mb-2" style="height: 20px;">
                             <div class="progress-bar bg-info" 
                                  style="width: {{ stats.enhancement_metrics.enhancement_rate }}%">
                                 {{ "%.1f"|format(stats.enhancement_metrics.enhancement_rate) }}%
                             </div>
                         </div>
-                        <small class="text-muted">{{ stats.enhancement_metrics.ai_enhanced_cases }}/{{ total_cases }} 用例使用AI增强</small>
+                        <small class="text-muted">{{ stats.enhancement_metrics.ai_enhanced_cases }}/{{ total_cases }} {{ texts.get('cases_ai_enhanced', '') }}</small>
                     </div>
                 </div>
-                
-                <!-- 详细分析信息 -->
                 <div class="row mt-3">
                     {% if ai_analysis.risk_areas %}
                     <div class="col-md-6">
-                        <h6><i class="bi bi-exclamation-triangle text-warning"></i> 识别的风险区域</h6>
+                        <h6><i class="bi bi-exclamation-triangle text-warning"></i> {{ texts.get('identified_risk_areas', '') }}</h6>
                         <div class="d-flex flex-wrap gap-1">
                             {% for risk in ai_analysis.risk_areas %}
                             <span class="badge bg-warning">{{ risk }}</span>
@@ -89,10 +86,9 @@
                         </div>
                     </div>
                     {% endif %}
-                    
                     {% if ai_analysis.critical_paths %}
                     <div class="col-md-6">
-                        <h6><i class="bi bi-diagram-3 text-info"></i> 关键路径</h6>
+                        <h6><i class="bi bi-diagram-3 text-info"></i> {{ texts.get('critical_paths', '') }}</h6>
                         <div class="d-flex flex-wrap gap-1">
                             {% for path in ai_analysis.critical_paths[:3] %}
                             <span class="badge bg-info">{{ path[:30] }}...</span>
@@ -106,13 +102,12 @@
     </div>
 </div>
 
-<!-- 测试用例预览 -->
 <div class="row">
     <div class="col-12">
         <div class="card">
             <div class="card-header">
                 <h5 class="mb-0">
-                    <i class="bi bi-list-ul"></i> AI智能模板生成的测试用例预览 (前10个)
+                    <i class="bi bi-list-ul"></i> {{ texts.get('smart_template_preview_title', '') }}
                 </h5>
             </div>
             <div class="card-body">
@@ -120,11 +115,11 @@
                     <table class="table table-striped table-hover">
                         <thead class="table-dark">
                             <tr>
-                                <th>用例编号</th>
-                                <th>模块</th>
-                                <th>子模块</th>
-                                <th>优先级</th>
-                                <th>AI方法</th>
+                                <th>{{ texts.get('case_number', '') }}</th>
+                                <th>{{ texts.get('module', '') }}</th>
+                                <th>{{ texts.get('submodule', '') }}</th>
+                                <th>{{ texts.get('priority', '') }}</th>
+                                <th>{{ texts.get('ai_method', '') }}</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -146,11 +141,10 @@
                         </tbody>
                     </table>
                 </div>
-                
                 {% if total_cases > 10 %}
                 <div class="alert alert-info mt-3">
                     <i class="bi bi-info-circle"></i> 
-                    仅显示前10个测试用例，完整的{{ total_cases }}个用例请下载Excel或AI增强报告查看
+                    {{ texts.get('preview_limit_note', '').replace('{count}', total_cases|string) }}
                 </div>
                 {% endif %}
             </div>
@@ -158,18 +152,17 @@
     </div>
 </div>
 
-<!-- 操作按钮 -->
 <div class="row mt-4">
     <div class="col-12 text-center">
         <div class="d-flex justify-content-center gap-3">
             <a href="{{ url_for('ai_smart_template') }}" class="btn btn-primary">
-                <i class="bi bi-lightbulb"></i> 使用其他AI模板
+                <i class="bi bi-lightbulb"></i> {{ texts.get('btn_other_template', '') }}
             </a>
             <a href="{{ url_for('ai_generate') }}" class="btn btn-outline-primary">
-                <i class="bi bi-robot"></i> AI自定义生成
+                <i class="bi bi-robot"></i> {{ texts.get('btn_ai_custom', '') }}
             </a>
             <a href="{{ url_for('index') }}" class="btn btn-outline-secondary">
-                <i class="bi bi-house"></i> 返回首页
+                <i class="bi bi-house"></i> {{ texts.get('btn_home', '') }}
             </a>
         </div>
     </div>

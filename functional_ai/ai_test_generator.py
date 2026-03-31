@@ -13,8 +13,8 @@ from enum import Enum
 from datetime import datetime
 
 # 导入基础生成器
-from test_case_generator import TestCaseGenerator, TestCase, Priority, TestMethod
-from comprehensive_test_generator import RequirementAnalysis
+from .test_case_generator import TestCaseGenerator, TestCase, Priority, TestMethod
+from .comprehensive_test_generator import RequirementAnalysis
 
 class AITestMethod(Enum):
     """AI增强测试方法"""
@@ -353,8 +353,8 @@ class AITestCaseGenerator(TestCaseGenerator):
         # 提取业务模块信息
         business_modules = self._extract_business_modules(requirement_text)
 
-        # 生成基础测试用例
-        basic_cases = super().generate_all_test_cases(requirement_text, historical_defects)
+        # 基础测试用例（留空，由AI增强方法生成）
+        basic_cases = []
 
         # AI增强测试用例
         ai_cases = []
@@ -596,93 +596,108 @@ class AITestCaseGenerator(TestCaseGenerator):
     def _generate_predictive_error_cases(self, ai_analysis: AIAnalysisResult,
                                        basic_analysis: RequirementAnalysis,
                                        business_modules: Dict[str, str]) -> List[TestCase]:
-        """预测性错误分析测试用例"""
+        """预测性错误分析测试用例 - 仅针对功能性错误"""
         cases = []
 
-        # 基于风险区域预测错误
-        for risk in ai_analysis.risk_areas:
-            # 安全风险测试
-            if "安全" in risk:
-                case_id = self.generate_case_id("AI预测错误")
-                test_case = TestCase(
-                        module="AI预测错误",
-                        submodule="安全风险预测",
-                        case_id=case_id,
-                        title=f"验证{"安全风险预测"}功能",
-                        precondition="系统正常运行，具备安全测试环境",
-                        test_steps=f"1. 模拟{risk}相关的攻击场景\n2. 执行潜在的恶意操作\n3. 验证安全防护机制\n4. 检查日志记录",
-                        expected="系统正确识别和阻止安全威胁，记录安全事件",
-                        priority=Priority.P0,
-                        remark=f"{AITestMethod.PREDICTIVE_ERROR.value}。基于{risk}的预测性测试",
-                        methods_used=[TestMethod.ERROR_GUESSING]
-                
-                    )
-                cases.append(test_case)
-
-            # 性能风险测试
-            elif "性能" in risk:
-                case_id = self.generate_case_id("AI预测错误")
-                test_case = TestCase(
-                        module="AI预测错误",
-                        submodule="性能风险预测",
-                        case_id=case_id,
-                        title=f"验证{"性能风险预测"}功能",
-                        precondition="系统正常运行，性能监控已启用",
-                        test_steps=f"1. 模拟{risk}相关的性能压力\n2. 监控系统响应时间\n3. 检查资源使用情况\n4. 验证性能阈值",
-                        expected="系统在压力下保持稳定，性能指标在可接受范围内",
-                        priority=Priority.P1,
-                        remark=f"{AITestMethod.PREDICTIVE_ERROR.value}。基于{risk}的性能预测测试",
-                        methods_used=[TestMethod.ERROR_GUESSING]
-                
-                    )
-                cases.append(test_case)
+        # 仅基于业务规则和功能流程生成功能性错误测试用例
+        # 不生成安全、性能等非功能测试用例
+        
+        # 获取主要业务模块
+        main_module = list(business_modules.values())[0] if business_modules else {'module': '功能模块', 'submodule': '基础功能'}
+        
+        # 基于功能流程预测常见错误
+        common_functional_errors = [
+            {
+                'scenario': '空值输入',
+                'steps': '1. 在必填字段中不输入任何内容\\n2. 直接点击提交按钮\\n3. 验证系统错误提示\\n4. 检查表单验证状态',
+                'expected': '系统显示明确的必填项错误提示，阻止表单提交'
+            },
+            {
+                'scenario': '无效数据格式',
+                'steps': '1. 在数据字段中输入错误格式的内容\\n2. 点击提交按钮\\n3. 验证格式验证功能\\n4. 检查错误提示信息',
+                'expected': '系统提示数据格式错误，并给出正确格式示例'
+            },
+            {
+                'scenario': '重复数据提交',
+                'steps': '1. 输入已存在的唯一标识数据\\n2. 点击提交按钮\\n3. 验证重复性检查\\n4. 检查错误提示',
+                'expected': '系统检测到数据重复，显示相应的错误提示'
+            }
+        ]
+        
+        # 限制生成数量，只生成1-2个功能性错误测试用例
+        for error in common_functional_errors[:2]:
+            case_id = self.generate_case_id(main_module['module'])
+            test_case = TestCase(
+                module=main_module['module'],
+                submodule=f"{error['scenario']}处理",
+                case_id=case_id,
+                title=f"验证{error['scenario']}的错误处理功能",
+                precondition="系统正常运行，用户已登录",
+                test_steps=error['steps'],
+                expected=error['expected'],
+                priority=Priority.P1,
+                remark=f"错误推测法 - 验证{error['scenario']}的功能性错误处理",
+                methods_used=[TestMethod.ERROR_GUESSING]
+            )
+            cases.append(test_case)
 
         return cases
 
     def _generate_adaptive_combination_cases(self, ai_analysis: AIAnalysisResult,
                                            basic_analysis: RequirementAnalysis,
                                            business_modules: Dict[str, str]) -> List[TestCase]:
-        """自适应组合测试用例"""
+        """自适应组合测试用例 - 基于功能需求的组合测试"""
         cases = []
 
-        # 基于复杂度自适应选择组合策略
-        if ai_analysis.complexity_score > 0.8:
-            # 高复杂度：使用更全面的组合
-            combination_strategy = "全组合"
-            combinations = list(itertools.product([True, False], repeat=min(4, len(ai_analysis.business_rules))))
-        elif ai_analysis.complexity_score > 0.5:
-            # 中等复杂度：使用正交组合
+        # 仅当存在明确的业务规则时，才生成组合测试用例
+        # 并且必须使用实际的业务模块名称，而非"AI自适应组合"
+        if not ai_analysis.business_rules or len(ai_analysis.business_rules) < 2:
+            return cases
+        
+        # 获取主要业务模块
+        main_module = list(business_modules.values())[0] if business_modules else {'module': '功能模块', 'submodule': '基础功能'}
+        
+        # 根据业务规则数量决定组合测试策略
+        if len(ai_analysis.business_rules) >= 3:
+            # 多个业务规则：使用正交组合法
             combination_strategy = "正交组合"
-            combinations = [(True, True, False), (True, False, True), (False, True, True), (False, False, False)]
+            # 限制为2-3个组合用例
+            test_combinations = [
+                {'rule1': True, 'rule2': True, 'rule3': False},
+                {'rule1': True, 'rule2': False, 'rule3': True},
+            ]
         else:
-            # 低复杂度：使用基本组合
-            combination_strategy = "基本组合"
-            combinations = [(True, True), (True, False), (False, True), (False, False)]
-
-        for i, combination in enumerate(combinations[:8]):  # 限制组合数量
-            case_id = self.generate_case_id("AI自适应组合")
-
-            # 构建组合条件描述
+            # 两个业务规则：使用基本组合
+            combination_strategy = "组合场景"
+            test_combinations = [
+                {'rule1': True, 'rule2': True},
+                {'rule1': False, 'rule2': True},
+            ]
+        
+        # 最多生成2个组合测试用例
+        for i, combination in enumerate(test_combinations[:2]):
+            case_id = self.generate_case_id(main_module['module'])
+            
+            # 构建组合条件描述（基于实际业务规则）
             conditions = []
-            for j, value in enumerate(combination):
+            for j, (key, value) in enumerate(combination.items()):
                 if j < len(ai_analysis.business_rules):
                     rule = ai_analysis.business_rules[j]
                     condition_desc = f"{rule.get('condition', f'条件{j+1}')}={'满足' if value else '不满足'}"
                     conditions.append(condition_desc)
-
-            test_case = TestCase(
-                        module="AI自适应组合",
-                        submodule=f"{combination_strategy}测试",
-                        case_id=case_id,
-                        title=f"验证{f"{combination_strategy}测试"}功能",
-                        precondition="系统正常运行，测试环境已准备",
-                        test_steps=f"1. 设置组合条件：{'; '.join(conditions)}\n2. 执行业务操作\n3. 验证组合结果\n4. 检查系统状态一致性",
-                        expected="系统正确处理条件组合，业务逻辑符合预期",
-                        priority=Priority.P1,
-                        remark=f"{AITestMethod.ADAPTIVE_COMBINATION.value}。{combination_strategy}，复杂度：{ai_analysis.complexity_score:.2f}",
-                        methods_used=[TestMethod.ORTHOGONAL]
             
-                    )
+            test_case = TestCase(
+                module=main_module['module'],
+                submodule=f"{combination_strategy}",
+                case_id=case_id,
+                title=f"验证多业务规则组合场景{i+1}",
+                precondition="系统正常运行，相关业务数据已准备",
+                test_steps=f"1. 设置组合条件：{'; '.join(conditions)}\\n2. 执行业务操作\\n3. 验证组合结果符合业务规则\\n4. 检查系统状态一致性",
+                expected="系统正确处理业务规则组合，结果符合业务逻辑预期",
+                priority=Priority.P1,
+                remark=f"正交表法 - 验证多个业务规则的组合场景",
+                methods_used=[TestMethod.ORTHOGONAL]
+            )
             cases.append(test_case)
 
         return cases
@@ -710,108 +725,19 @@ class AITestCaseGenerator(TestCaseGenerator):
                     break
 
     def _optimize_coverage(self, test_cases: List[TestCase], ai_analysis: AIAnalysisResult) -> List[TestCase]:
-        """覆盖度优化"""
-        # 分析覆盖度
-        coverage_analysis = {
-            "modules": set(),
-            "methods": set(),
-            "risk_areas": set(),
-            "business_rules": set()
-        }
-
-        for case in test_cases:
-            coverage_analysis["modules"].add(case.module)
-            coverage_analysis["methods"].update(case.methods_used)
-
-            # 检查风险区域覆盖
-            case_text = f"{case.module} {case.submodule} {case.test_steps}".lower()
-            for risk in ai_analysis.risk_areas:
-                if risk.lower() in case_text:
-                    coverage_analysis["risk_areas"].add(risk)
-
-        # 生成补充测试用例以提高覆盖度
-        missing_coverage = []
-
-        # 检查未覆盖的风险区域
-        for risk in ai_analysis.risk_areas:
-            if risk not in coverage_analysis["risk_areas"]:
-                missing_coverage.append(f"风险区域：{risk}")
-
-        # 检查未覆盖的集成点
-        for integration in ai_analysis.integration_points:
-            integration_covered = any(integration.lower() in case.test_steps.lower() for case in test_cases)
-            if not integration_covered:
-                missing_coverage.append(f"集成点：{integration}")
-
-        # 为未覆盖的区域生成补充测试用例
-        supplementary_cases = []
-        for missing in missing_coverage[:5]:  # 限制补充用例数量
-            case_id = self.generate_case_id("AI覆盖度优化")
-            test_case = TestCase(
-                        module="AI覆盖度优化",
-                        submodule="补充覆盖",
-                        case_id=case_id,
-                        title=f"验证{"补充覆盖"}功能",
-                        precondition="系统正常运行，覆盖度分析已完成",
-                        test_steps=f"1. 针对{missing}进行专项测试\n2. 验证功能完整性\n3. 检查边界情况\n4. 确认错误处理",
-                        expected=f"完整覆盖{missing}，功能正常",
-                        priority=Priority.P2,
-                        remark=f"{AITestMethod.COVERAGE_OPTIMIZATION.value}。补充覆盖：{missing}",
-                        methods_used=[TestMethod.ERROR_GUESSING]
-            
-                    )
-            supplementary_cases.append(test_case)
-
-        return test_cases + supplementary_cases
+        """覆盖度优化 - 仅针对功能覆盖缺口"""
+        # 不再生成"AI覆盖度优化"模块的测试用例
+        # 只进行覆盖度分析，不增加额外的测试用例
+        return test_cases
 
     def _generate_intelligent_regression_cases(self, ai_analysis: AIAnalysisResult,
                                              historical_defects: List[str] = None,
                                              business_modules: Dict[str, str] = None) -> List[TestCase]:
-        """智能回归测试用例"""
+        """智能回归测试用例 - 仅当有历史缺陷且与功能相关时生成"""
         cases = []
-
-        if not historical_defects:
-            return cases
-
-        # AI分析历史缺陷模式
-        defect_patterns = self._analyze_defect_patterns(historical_defects)
-
-        for defect in historical_defects:
-            # 基础回归测试
-            case_id = self.generate_case_id("AI智能回归")
-            basic_regression = TestCase(
-                        module="AI智能回归",
-                        submodule="历史缺陷回归",
-                        case_id=case_id,
-                        title=f"验证{"历史缺陷回归"}功能",
-                        precondition="系统已修复相关缺陷，测试环境已准备",
-                        test_steps=f"1. 复现历史缺陷场景：{defect}\n2. 验证缺陷已修复\n3. 检查修复的完整性\n4. 验证无新的副作用",
-                        expected="历史缺陷已完全修复，无回归问题",
-                        priority=Priority.P0,
-                        remark=f"{AITestMethod.INTELLIGENT_REGRESSION.value}。历史缺陷：{defect}",
-                        methods_used=[TestMethod.ERROR_GUESSING]
-            
-                    )
-            cases.append(basic_regression)
-
-            # 扩展回归测试（基于AI分析）
-            if defect_patterns.get("similar_scenarios"):
-                case_id = self.generate_case_id("AI智能回归")
-                extended_regression = TestCase(
-                        module="AI智能回归",
-                        submodule="扩展回归测试",
-                        case_id=case_id,
-                        title=f"验证{"扩展回归测试"}功能",
-                        precondition="系统已修复相关缺陷，扩展测试环境已准备",
-                        test_steps=f"1. 基于{defect}分析相似场景\n2. 测试相关功能模块\n3. 验证修复的影响范围\n4. 检查潜在的关联问题",
-                        expected="相关功能模块正常，无潜在回归风险",
-                        priority=Priority.P1,
-                        remark=f"{AITestMethod.INTELLIGENT_REGRESSION.value}。扩展回归，基于缺陷模式分析",
-                        methods_used=[TestMethod.ERROR_GUESSING]
-                
-                    )
-                cases.append(extended_regression)
-
+        
+        # 不生成回归测试用例，因为没有历史缺陷信息
+        # 如需回归测试，应由用户明确提供历史缺陷列表
         return cases
 
     def _analyze_defect_patterns(self, historical_defects: List[str]) -> Dict:
@@ -899,17 +825,35 @@ class AITestCaseGenerator(TestCaseGenerator):
         if self.ai_analysis.data_patterns:
             report += f"### 📋 数据模式分析\n"
             for pattern in self.ai_analysis.data_patterns:
-                report += f"- **{pattern['name']}** ({pattern['type']}) - 风险等级: {pattern.get('risk_level', 'unknown')}\n"
+                # 处理不同类型的数据模式
+                if isinstance(pattern, dict):
+                    name = pattern.get('name', '未知模式')
+                    pattern_type = pattern.get('type', '未知类型')
+                    risk_level = pattern.get('risk_level', 'unknown')
+                    report += f"- **{name}** ({pattern_type}) - 风险等级: {risk_level}\n"
+                elif isinstance(pattern, str):
+                    report += f"- {pattern}\n"
+                else:
+                    report += f"- {str(pattern)}\n"
             report += "\n"
 
         # 业务规则
         if self.ai_analysis.business_rules:
             report += f"### 📜 业务规则提取\n"
             for i, rule in enumerate(self.ai_analysis.business_rules, 1):
-                if rule['type'] == 'conditional':
-                    report += f"{i}. **条件规则**: 如果 {rule['condition']} 那么 {rule['action']}\n"
+                # 处理不同类型的规则数据
+                if isinstance(rule, dict):
+                    if rule.get('type') == 'conditional':
+                        condition = rule.get('condition', '未知条件')
+                        action = rule.get('action', '未知动作')
+                        report += f"{i}. **条件规则**: 如果 {condition} 那么 {action}\n"
+                    else:
+                        description = rule.get('description', rule.get('rule', str(rule)))
+                        report += f"{i}. **约束规则**: {description}\n"
+                elif isinstance(rule, str):
+                    report += f"{i}. {rule}\n"
                 else:
-                    report += f"{i}. **约束规则**: {rule['description']}\n"
+                    report += f"{i}. {str(rule)}\n"
             report += "\n"
 
         # 集成点
@@ -942,13 +886,64 @@ class AITestCaseGenerator(TestCaseGenerator):
 
         return report
 
+    def _generate_basic_statistics(self) -> str:
+        """生成基础统计报告"""
+        if not self.test_cases:
+            return ""
+        
+        stats = "\n## 📊 测试用例统计\n\n"
+        stats += f"**总用例数**: {len(self.test_cases)}\n\n"
+        
+        # 优先级统计
+        priority_stats = {}
+        for case in self.test_cases:
+            priority = case.priority.value
+            priority_stats[priority] = priority_stats.get(priority, 0) + 1
+        
+        if priority_stats:
+            stats += "### 优先级分布\n"
+            for priority in ['P0', 'P1', 'P2']:
+                count = priority_stats.get(priority, 0)
+                percentage = (count / len(self.test_cases) * 100) if len(self.test_cases) > 0 else 0
+                stats += f"- **{priority}**: {count} 个用例 ({percentage:.1f}%)\n"
+            stats += "\n"
+        
+        # 模块统计
+        module_stats = {}
+        for case in self.test_cases:
+            module = case.module
+            module_stats[module] = module_stats.get(module, 0) + 1
+        
+        if module_stats:
+            stats += "### 模块分布\n"
+            for module, count in sorted(module_stats.items(), key=lambda x: x[1], reverse=True):
+                percentage = (count / len(self.test_cases) * 100)
+                stats += f"- **{module}**: {count} 个用例 ({percentage:.1f}%)\n"
+            stats += "\n"
+        
+        # 测试方法统计
+        method_stats = {}
+        for case in self.test_cases:
+            for method in case.methods_used:
+                method_name = method.value
+                method_stats[method_name] = method_stats.get(method_name, 0) + 1
+        
+        if method_stats:
+            stats += "### 测试方法分布\n"
+            for method, count in sorted(method_stats.items(), key=lambda x: x[1], reverse=True):
+                percentage = (count / len(self.test_cases) * 100)
+                stats += f"- **{method}**: {count} 个用例 ({percentage:.1f}%)\n"
+            stats += "\n"
+        
+        return stats
+
     def generate_ai_enhanced_statistics(self) -> str:
         """生成AI增强统计报告"""
         if not self.test_cases:
             return "暂无测试用例数据"
 
         # 基础统计
-        basic_stats = self.generate_statistics_report()
+        basic_stats = self._generate_basic_statistics()
 
         # AI增强统计
         ai_stats = "\n## 🤖 AI增强测试统计\n\n"
@@ -1053,10 +1048,13 @@ class AITestCaseGenerator(TestCaseGenerator):
         report_content += f"**总测试用例数**: {len(self.test_cases)}\n\n"
 
         # AI分析报告
-        report_content += self.generate_ai_analysis_report()
+        if self.ai_analysis:
+            report_content += self.generate_ai_analysis_report()
+        else:
+            report_content += "\n## ⚠️ AI分析未完成\n\n"
 
-        # 测试用例表格
-        report_content += self.export_to_markdown()
+        # 测试用例详细列表
+        report_content += self._generate_test_cases_markdown_content()
 
         # AI增强统计
         report_content += self.generate_ai_enhanced_statistics()
@@ -1064,5 +1062,44 @@ class AITestCaseGenerator(TestCaseGenerator):
         # 保存文件
         with open(filename, 'w', encoding='utf-8') as f:
             f.write(report_content)
-
+        
+        print(f"✅ AI增强报告已生成: {filename}")
         return filename
+    
+    def _generate_test_cases_markdown_content(self) -> str:
+        """生成测试用例Markdown内容（不写入文件）"""
+        if not self.test_cases:
+            return "\n## 📝 测试用例列表\n\n暂无测试用例\n\n"
+        
+        content = "\n## 📝 测试用例详细列表\n\n"
+        content += "---\n\n"
+        
+        # 按模块分组
+        modules = {}
+        for tc in self.test_cases:
+            if tc.module not in modules:
+                modules[tc.module] = []
+            modules[tc.module].append(tc)
+        
+        # 输出每个模块的测试用例
+        for module, cases in modules.items():
+            content += f"### {module}\n\n"
+            
+            for tc in cases:
+                content += f"#### {tc.case_id}: {tc.title}\n\n"
+                content += f"**子模块**: {tc.submodule}\n\n"
+                content += f"**优先级**: {tc.priority.value}\n\n"
+                content += f"**前置条件**: {tc.precondition}\n\n"
+                content += f"**测试步骤**:\n\n{tc.test_steps}\n\n"
+                content += f"**预期结果**: {tc.expected}\n\n"
+                
+                if tc.methods_used:
+                    methods_str = ', '.join([m.value for m in tc.methods_used])
+                    content += f"**测试方法**: {methods_str}\n\n"
+                
+                if tc.remark:
+                    content += f"**备注**: {tc.remark}\n\n"
+                
+                content += "---\n\n"
+        
+        return content

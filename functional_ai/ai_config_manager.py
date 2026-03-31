@@ -12,12 +12,15 @@ import hashlib
 from datetime import datetime
 from typing import Optional, Dict, Any
 from dataclasses import dataclass, asdict
-from real_ai_generator import AIProvider, AIConfig
+from .real_ai_generator import AIProvider, AIConfig
 
 class AIConfigManager:
     """AI配置管理器"""
     
-    def __init__(self, config_dir: str = "config"):
+    def __init__(self, config_dir: str = None):
+        if config_dir is None:
+            from .paths import PROJECT_ROOT
+            config_dir = os.path.join(PROJECT_ROOT, "config")
         self.config_dir = config_dir
         self.config_file = os.path.join(config_dir, "ai_config.json")
         self.db_file = os.path.join(config_dir, "ai_config.db")

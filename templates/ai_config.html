@@ -1,219 +1,116 @@
 {% extends "ai_base.html" %}
 
-{% block title %}AI配置 - 功能测试用例生成器{% endblock %}
+{% block title %}{{ texts.get('config_page_title', 'AI配置管理') }}{% endblock %}
 
 {% block content %}
 <div class="row">
-    <div class="col-12">
+    <div class="col-12 col-lg-10 mx-auto">
         <div class="card">
             <div class="card-header bg-gradient text-white" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
                 <h4 class="mb-0">
-                    <i class="bi bi-gear"></i> AI大模型配置
+                    <i class="bi bi-gear"></i> {{ texts.get('config_page_title', 'AI配置管理') }}
                 </h4>
+                <small>{{ texts.get('config_page_subtitle', '') }}</small>
             </div>
             <div class="card-body">
                 <div class="alert alert-info" role="alert">
-                    <h6 class="alert-heading"><i class="bi bi-info-circle"></i> 真实AI集成</h6>
-                    <p class="mb-0">
-                        配置您的AI API密钥，启用真正的AI大模型进行需求分析和测试用例生成。
-                        支持OpenAI、Claude、Gemini、文心一言等多种AI服务。
-                    </p>
+                    <h6 class="alert-heading"><i class="bi bi-info-circle"></i> {{ texts.get('ai_integration', '') }}</h6>
+                    <p class="mb-0">{{ texts.get('config_preset_intro', '选择推荐模型后，将自动填入厂商默认的 API Base URL 与模型名，您只需填写 API Key。') }}</p>
                 </div>
 
-                <!-- 当前配置状态 -->
-                <div class="mb-4" id="currentConfigStatus">
-                    <div class="card bg-light">
-                        <div class="card-body">
-                            <h6 class="card-title">
-                                <i class="bi bi-info-circle"></i> 当前配置状态
-                                <button type="button" class="btn btn-sm btn-outline-primary float-end" id="refreshStatus">
-                                    <i class="bi bi-arrow-clockwise"></i> 刷新状态
-                                </button>
-                            </h6>
-                            <div id="statusContent">
-                                <div class="d-flex align-items-center">
-                                    <div class="spinner-border spinner-border-sm me-2" role="status"></div>
-                                    <span>正在检查配置状态...</span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+                {% if saved_config and saved_config.api_key %}
+                <div class="alert alert-success py-2 small" role="alert">
+                    <i class="bi bi-check-circle"></i>
+                    {{ texts.get('config_current_saved', '当前已保存') }}:
+                    <strong>{{ saved_config.provider.value }}</strong>
+                    / <code>{{ saved_config.model or '—' }}</code>
+                    {% if saved_config.base_url %}<span class="text-muted">· {{ saved_config.base_url[:48] }}{% if saved_config.base_url|length > 48 %}…{% endif %}</span>{% endif %}
                 </div>
-                
+                {% endif %}
+
                 <form method="POST" action="{{ url_for('save_ai_config') }}">
-                    <!-- AI服务提供商选择 -->
                     <div class="mb-4">
-                        <label for="ai_provider" class="form-label">
-                            <i class="bi bi-cloud"></i> AI服务提供商 <span class="text-danger">*</span>
+                        <label for="model_preset" class="form-label required-field">
+                            <i class="bi bi-stars"></i> {{ texts.get('config_model_preset', '推荐模型') }}
                         </label>
-                        <div class="row">
-                            <div class="col-md-6 mb-3">
-                                <div class="card provider-card" data-provider="openai">
-                                    <div class="card-body text-center">
-                                        <input type="radio" name="ai_provider" value="openai" id="provider_openai" class="form-check-input" checked>
-                                        <label for="provider_openai" class="form-check-label w-100">
-                                            <h6 class="mt-2">OpenAI GPT</h6>
-                                            <p class="small text-muted">GPT-3.5/GPT-4 系列模型</p>
-                                            <div class="badge bg-success">推荐</div>
-                                        </label>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="col-md-6 mb-3">
-                                <div class="card provider-card" data-provider="anthropic">
-                                    <div class="card-body text-center">
-                                        <input type="radio" name="ai_provider" value="anthropic" id="provider_anthropic" class="form-check-input">
-                                        <label for="provider_anthropic" class="form-check-label w-100">
-                                            <h6 class="mt-2">Anthropic Claude</h6>
-                                            <p class="small text-muted">Claude-3 系列模型</p>
-                                            <div class="badge bg-primary">高质量</div>
-                                        </label>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="col-md-6 mb-3">
-                                <div class="card provider-card" data-provider="google_gemini">
-                                    <div class="card-body text-center">
-                                        <input type="radio" name="ai_provider" value="google_gemini" id="provider_gemini" class="form-check-input">
-                                        <label for="provider_gemini" class="form-check-label w-100">
-                                            <h6 class="mt-2">Google Gemini</h6>
-                                            <p class="small text-muted">Gemini Pro 模型</p>
-                                            <div class="badge bg-info">免费额度</div>
-                                        </label>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="col-md-6 mb-3">
-                                <div class="card provider-card" data-provider="baidu_ernie">
-                                    <div class="card-body text-center">
-                                        <input type="radio" name="ai_provider" value="baidu_ernie" id="provider_ernie" class="form-check-input">
-                                        <label for="provider_ernie" class="form-check-label w-100">
-                                            <h6 class="mt-2">百度文心一言</h6>
-                                            <p class="small text-muted">ERNIE 系列模型</p>
-                                            <div class="badge bg-warning">中文优化</div>
-                                        </label>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="col-md-6 mb-3">
-                                <div class="card provider-card" data-provider="alibaba_qwen">
-                                    <div class="card-body text-center">
-                                        <input type="radio" name="ai_provider" value="alibaba_qwen" id="provider_qwen" class="form-check-input">
-                                        <label for="provider_qwen" class="form-check-label w-100">
-                                            <h6 class="mt-2">阿里通义千问</h6>
-                                            <p class="small text-muted">Qwen 系列模型</p>
-                                            <div class="badge bg-secondary">企业级</div>
-                                        </label>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="col-md-6 mb-3">
-                                <div class="card provider-card" data-provider="zhipu_glm">
-                                    <div class="card-body text-center">
-                                        <input type="radio" name="ai_provider" value="zhipu_glm" id="provider_glm" class="form-check-input">
-                                        <label for="provider_glm" class="form-check-label w-100">
-                                            <h6 class="mt-2">智谱GLM</h6>
-                                            <p class="small text-muted">GLM-4 系列模型</p>
-                                            <div class="badge bg-info">性价比高</div>
-                                        </label>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
+                        <select class="form-select form-select-lg" id="model_preset" name="model_preset" required>
+                            <option value="" disabled {% if not current_preset_id %}selected{% endif %}>{{ texts.get('config_select_model', '请选择模型…') }}</option>
+                            {% for p in model_presets %}
+                            <option value="{{ p.id }}"
+                                data-provider="{{ p.provider }}"
+                                data-model="{{ p.model }}"
+                                data-base-url="{{ p.base_url or '' }}"
+                                {% if p.id == current_preset_id %}selected{% endif %}>
+                                {% if lang == 'zh' %}{{ p.label_zh }}{% else %}{{ p.label_en }}{% endif %}
+                            </option>
+                            {% endfor %}
+                            <option value="__custom__" {% if saved_config and not current_preset_id %}selected{% endif %}>{{ texts.get('config_custom_advanced', '自定义（高级）') }}</option>
+                        </select>
+                        <div class="form-text text-muted" id="presetHint"></div>
                     </div>
 
-                    <!-- API配置 -->
                     <div class="mb-4">
-                        <label for="api_key" class="form-label">
-                            <i class="bi bi-key"></i> API密钥 <span class="text-danger">*</span>
+                        <label for="api_key" class="form-label required-field">
+                            <i class="bi bi-key"></i> {{ texts.get('api_key', 'API密钥') }}
                         </label>
-                        <div class="input-group">
-                            <input type="password" class="form-control" id="api_key" name="api_key" 
-                                   placeholder="请输入您的API密钥" required>
-                            <button class="btn btn-outline-secondary" type="button" id="toggleApiKey">
-                                <i class="bi bi-eye"></i>
-                            </button>
-                        </div>
+                        <input type="password" class="form-control" id="api_key" name="api_key"
+                               placeholder="{{ texts.get('enter_api_key', '') }}" autocomplete="off" required>
                         <div class="form-text">
-                            <i class="bi bi-shield-check"></i> 
-                            API密钥将安全存储在本地，不会上传到任何服务器
+                            <i class="bi bi-shield-check"></i> {{ texts.get('api_key_secure', '') }}
                         </div>
                     </div>
 
-                    <!-- 高级配置 -->
-                    <div class="mb-4">
-                        <div class="card">
-                            <div class="card-header">
-                                <h6 class="mb-0">
-                                    <button class="btn btn-link p-0" type="button" data-bs-toggle="collapse" 
-                                            data-bs-target="#advancedConfig">
-                                        <i class="bi bi-gear-wide-connected"></i> 高级配置 (可选)
-                                    </button>
-                                </h6>
-                            </div>
-                            <div class="collapse" id="advancedConfig">
-                                <div class="card-body">
-                                    <div class="row">
-                                        <div class="col-md-6">
-                                            <label for="base_url" class="form-label">
-                                                <i class="bi bi-link"></i> 自定义API地址
-                                            </label>
-                                            <input type="url" class="form-control" id="base_url" name="base_url" 
-                                                   placeholder="https://api.openai.com">
-                                            <div class="form-text">留空使用默认地址</div>
-                                        </div>
-                                        <div class="col-md-6">
-                                            <label for="model" class="form-label">
-                                                <i class="bi bi-cpu"></i> 模型名称
-                                            </label>
-                                            <input type="text" class="form-control" id="model" name="model" 
-                                                   placeholder="gpt-3.5-turbo">
-                                            <div class="form-text">留空使用默认模型</div>
-                                        </div>
-                                    </div>
-                                    <div class="row mt-3">
-                                        <div class="col-md-4">
-                                            <label for="max_tokens" class="form-label">
-                                                <i class="bi bi-textarea-t"></i> 最大令牌数
-                                            </label>
-                                            <input type="number" class="form-control" id="max_tokens" name="max_tokens" 
-                                                   value="4000" min="100" max="8000">
-                                        </div>
-                                        <div class="col-md-4">
-                                            <label for="temperature" class="form-label">
-                                                <i class="bi bi-thermometer-half"></i> 创造性 (0-1)
-                                            </label>
-                                            <input type="number" class="form-control" id="temperature" name="temperature" 
-                                                   value="0.7" min="0" max="1" step="0.1">
-                                        </div>
-                                        <div class="col-md-4">
-                                            <label for="timeout" class="form-label">
-                                                <i class="bi bi-clock"></i> 超时时间(秒)
-                                            </label>
-                                            <input type="number" class="form-control" id="timeout" name="timeout" 
-                                                   value="30" min="10" max="120">
-                                        </div>
-                                    </div>
+                    <details class="mb-4" id="advancedBlock">
+                        <summary class="fw-bold text-secondary">{{ texts.get('config_advanced', '高级选项') }}</summary>
+                        <div class="mt-3 p-3 border rounded bg-light">
+                            <p class="small text-muted mb-3">{{ texts.get('config_advanced_hint', '仅在「自定义」时使用下方字段；使用推荐模型时不必填写。') }}</p>
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">{{ texts.get('provider_selection', '提供商') }}</label>
+                                    <select class="form-select" name="ai_provider" id="ai_provider">
+                                        {% set sp = saved_config.provider.value if saved_config else 'openai' %}
+                                        <option value="openai" {% if sp == 'openai' %}selected{% endif %}>OpenAI</option>
+                                        <option value="anthropic" {% if sp == 'anthropic' %}selected{% endif %}>Anthropic</option>
+                                        <option value="deepseek" {% if sp == 'deepseek' %}selected{% endif %}>DeepSeek</option>
+                                        <option value="qwen" {% if sp == 'qwen' %}selected{% endif %}>Qwen (native)</option>
+                                        <option value="google_gemini" {% if sp == 'google_gemini' %}selected{% endif %}>Google Gemini</option>
+                                        <option value="chatglm" {% if sp == 'chatglm' %}selected{% endif %}>ChatGLM / GLM</option>
+                                        <option value="moonshot" {% if sp == 'moonshot' %}selected{% endif %}>Moonshot</option>
+                                        <option value="ernie" {% if sp == 'ernie' %}selected{% endif %}>ERNIE</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">{{ texts.get('config_model', '模型名称') }}</label>
+                                    <input type="text" class="form-control" name="model_name" id="model_name" placeholder="gpt-4o"
+                                           value="{{ saved_config.model if saved_config and not current_preset_id else '' }}">
+                                </div>
+                                <div class="col-12 mb-3">
+                                    <label class="form-label">{{ texts.get('config_api_base', 'API Base URL') }}</label>
+                                    <input type="text" class="form-control" name="base_url" id="base_url" placeholder="https://api.openai.com/v1"
+                                           value="{{ saved_config.base_url if saved_config and not current_preset_id else '' }}">
+                                </div>
+                                <div class="col-md-4 mb-3">
+                                    <label class="form-label">max_tokens</label>
+                                    <input type="number" class="form-control" name="max_tokens" value="{{ saved_config.max_tokens if saved_config else 8000 }}" min="512" max="128000">
+                                </div>
+                                <div class="col-md-4 mb-3">
+                                    <label class="form-label">temperature</label>
+                                    <input type="number" class="form-control" name="temperature" value="{{ saved_config.temperature if saved_config else 0.7 }}" step="0.1" min="0" max="2">
+                                </div>
+                                <div class="col-md-4 mb-3">
+                                    <label class="form-label">timeout (s)</label>
+                                    <input type="number" class="form-control" name="timeout" value="{{ saved_config.timeout if saved_config else 120 }}" min="10" max="600">
                                 </div>
                             </div>
                         </div>
-                    </div>
+                    </details>
 
-                    <!-- 测试连接 -->
-                    <div class="mb-4">
-                        <button type="button" class="btn btn-outline-primary" id="testConnection">
-                            <i class="bi bi-wifi"></i> 测试AI连接
-                        </button>
-                        <div id="testResult" class="mt-2"></div>
-                    </div>
-
-                    <!-- 提交按钮 -->
                     <div class="d-grid gap-2 d-md-flex justify-content-md-end">
                         <a href="{{ url_for('index') }}" class="btn btn-outline-secondary me-md-2">
-                            <i class="bi bi-arrow-left"></i> 返回首页
+                            <i class="bi bi-arrow-left"></i> {{ texts.get('btn_back', '返回') }}
                         </a>
                         <button type="submit" class="btn btn-primary btn-lg">
-                            <i class="bi bi-check-circle"></i> 保存AI配置
+                            <i class="bi bi-save"></i> {{ texts.get('save_config', '保存配置') }}
                         </button>
                     </div>
                 </form>
@@ -222,304 +119,36 @@
     </div>
 </div>
 
-<!-- AI配置说明 -->
-<div class="row mt-4">
-    <div class="col-12">
-        <div class="card bg-light">
-            <div class="card-header">
-                <h5 class="mb-0">
-                    <i class="bi bi-question-circle"></i> AI配置说明
-                </h5>
-            </div>
-            <div class="card-body">
-                <div class="row">
-                    <div class="col-md-6">
-                        <h6><i class="bi bi-key text-primary"></i> 如何获取API密钥：</h6>
-                        <ul class="list-unstyled">
-                            <li><i class="bi bi-check text-success"></i> <strong>OpenAI:</strong> 访问 platform.openai.com</li>
-                            <li><i class="bi bi-check text-success"></i> <strong>Claude:</strong> 访问 console.anthropic.com</li>
-                            <li><i class="bi bi-check text-success"></i> <strong>Gemini:</strong> 访问 ai.google.dev</li>
-                            <li><i class="bi bi-check text-success"></i> <strong>文心一言:</strong> 访问 cloud.baidu.com</li>
-                            <li><i class="bi bi-check text-success"></i> <strong>通义千问:</strong> 访问 dashscope.aliyun.com</li>
-                        </ul>
-                    </div>
-                    <div class="col-md-6">
-                        <h6><i class="bi bi-shield-check text-success"></i> 安全保障：</h6>
-                        <ul class="list-unstyled">
-                            <li><i class="bi bi-check text-success"></i> API密钥仅存储在本地</li>
-                            <li><i class="bi bi-check text-success"></i> 支持加密存储配置</li>
-                            <li><i class="bi bi-check text-success"></i> 不会上传到任何服务器</li>
-                            <li><i class="bi bi-check text-success"></i> 可随时删除或修改配置</li>
-                        </ul>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-{% endblock %}
-
-{% block scripts %}
-<script>
-// 提供商选择效果
-document.addEventListener('DOMContentLoaded', function() {
-    const providerCards = document.querySelectorAll('.provider-card');
-    const radios = document.querySelectorAll('input[name="ai_provider"]');
-
-    // 初始化
-    updateProviderCardStyles();
-    checkConfigStatus();
-
-    providerCards.forEach(card => {
-        card.addEventListener('click', function() {
-            const provider = this.dataset.provider;
-            const radio = document.getElementById(`provider_${provider}`);
-            radio.checked = true;
-            updateProviderCardStyles();
-            updateConfigFields(provider);
-        });
-    });
-
-    radios.forEach(radio => {
-        radio.addEventListener('change', function() {
-            updateProviderCardStyles();
-            updateConfigFields(this.value);
-        });
-    });
-
-    // 刷新状态按钮
-    document.getElementById('refreshStatus').addEventListener('click', checkConfigStatus);
-
-    function updateProviderCardStyles() {
-        providerCards.forEach(card => {
-            const provider = card.dataset.provider;
-            const radio = document.getElementById(`provider_${provider}`);
-
-            if (radio.checked) {
-                card.classList.add('border-primary', 'bg-primary', 'text-white');
-                card.classList.remove('border-light');
-            } else {
-                card.classList.remove('border-primary', 'bg-primary', 'text-white');
-                card.classList.add('border-light');
-            }
-        });
-    }
-    
-    function updateConfigFields(provider) {
-        const baseUrlField = document.getElementById('base_url');
-        const modelField = document.getElementById('model');
-        
-        // 根据提供商设置默认值
-        const defaults = {
-            'openai': {
-                base_url: 'https://api.openai.com',
-                model: 'gpt-3.5-turbo'
-            },
-            'anthropic': {
-                base_url: 'https://api.anthropic.com',
-                model: 'claude-3-sonnet-20240229'
-            },
-            'google_gemini': {
-                base_url: 'https://generativelanguage.googleapis.com',
-                model: 'gemini-pro'
-            },
-            'baidu_ernie': {
-                base_url: '',
-                model: 'completions_pro'
-            },
-            'alibaba_qwen': {
-                base_url: 'https://dashscope.aliyuncs.com',
-                model: 'qwen-turbo'
-            },
-            'zhipu_glm': {
-                base_url: 'https://open.bigmodel.cn',
-                model: 'glm-4'
-            }
-        };
-        
-        if (defaults[provider]) {
-            baseUrlField.placeholder = defaults[provider].base_url;
-            modelField.placeholder = defaults[provider].model;
-        }
-    }
-});
-
-// 检查配置状态
-function checkConfigStatus() {
-    const statusContent = document.getElementById('statusContent');
-    statusContent.innerHTML = `
-        <div class="d-flex align-items-center">
-            <div class="spinner-border spinner-border-sm me-2" role="status"></div>
-            <span>正在检查配置状态...</span>
-        </div>
-    `;
-
-    fetch('/get_ai_status')
-        .then(response => response.json())
-        .then(data => {
-            if (data.configured) {
-                statusContent.innerHTML = `
-                    <div class="row">
-                        <div class="col-md-6">
-                            <div class="alert alert-success mb-2">
-                                <i class="bi bi-check-circle-fill"></i> AI已配置
-                            </div>
-                            <p class="mb-1"><strong>提供商:</strong> ${data.provider}</p>
-                            <p class="mb-1"><strong>模型:</strong> ${data.model}</p>
-                            <p class="mb-0"><strong>API密钥:</strong> ${data.has_api_key ? '已配置' : '未配置'}</p>
-                        </div>
-                        <div class="col-md-6">
-                            <p class="mb-1"><strong>配置文件:</strong> ${data.config_file_exists ? '✅ 存在' : '❌ 不存在'}</p>
-                            <p class="mb-1"><strong>数据库:</strong> ${data.database_exists ? '✅ 存在' : '❌ 不存在'}</p>
-                            <button type="button" class="btn btn-sm btn-outline-danger" onclick="deleteConfig()">
-                                <i class="bi bi-trash"></i> 删除配置
-                            </button>
-                        </div>
-                    </div>
-                `;
-
-                // 预填充表单（不包括API密钥）
-                if (data.provider) {
-                    const providerRadio = document.getElementById(`provider_${data.provider}`);
-                    if (providerRadio) {
-                        providerRadio.checked = true;
-                        updateProviderCardStyles();
-                        updateConfigFields(data.provider);
-                    }
-                }
-
-            } else {
-                statusContent.innerHTML = `
-                    <div class="alert alert-warning mb-0">
-                        <i class="bi bi-exclamation-triangle-fill"></i>
-                        未配置AI服务，当前使用模拟AI
-                        ${data.error ? `<br><small>错误: ${data.error}</small>` : ''}
-                    </div>
-                `;
-            }
-        })
-        .catch(error => {
-            statusContent.innerHTML = `
-                <div class="alert alert-danger mb-0">
-                    <i class="bi bi-exclamation-triangle-fill"></i>
-                    无法检查配置状态: ${error.message}
-                </div>
-            `;
-        });
-}
-
-// 删除配置
-function deleteConfig() {
-    if (confirm('确定要删除当前AI配置吗？此操作不可撤销。')) {
-        fetch('/delete_ai_config', {
-            method: 'POST'
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                alert('AI配置删除成功');
-                checkConfigStatus();
-                // 清空表单
-                document.getElementById('api_key').value = '';
-                document.getElementById('base_url').value = '';
-                document.getElementById('model').value = '';
-            } else {
-                alert('删除失败: ' + data.error);
-            }
-        })
-        .catch(error => {
-            alert('删除出错: ' + error.message);
-        });
-    }
-}
-
-// 显示/隐藏API密钥
-document.getElementById('toggleApiKey').addEventListener('click', function() {
-    const apiKeyField = document.getElementById('api_key');
-    const icon = this.querySelector('i');
-    
-    if (apiKeyField.type === 'password') {
-        apiKeyField.type = 'text';
-        icon.className = 'bi bi-eye-slash';
-    } else {
-        apiKeyField.type = 'password';
-        icon.className = 'bi bi-eye';
-    }
-});
-
-// 测试AI连接
-document.getElementById('testConnection').addEventListener('click', function() {
-    const btn = this;
-    const resultDiv = document.getElementById('testResult');
-    const originalText = btn.innerHTML;
-    
-    // 获取表单数据
-    const formData = new FormData();
-    formData.append('ai_provider', document.querySelector('input[name="ai_provider"]:checked').value);
-    formData.append('api_key', document.getElementById('api_key').value);
-    formData.append('base_url', document.getElementById('base_url').value);
-    formData.append('model', document.getElementById('model').value);
-    formData.append('max_tokens', document.getElementById('max_tokens').value);
-    formData.append('temperature', document.getElementById('temperature').value);
-    formData.append('timeout', document.getElementById('timeout').value);
-    
-    btn.innerHTML = '<i class="bi bi-hourglass-split"></i> 测试中...';
-    btn.disabled = true;
-    
-    fetch('/test_ai_connection', {
-        method: 'POST',
-        body: formData
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            resultDiv.innerHTML = `
-                <div class="alert alert-success">
-                    <i class="bi bi-check-circle"></i> AI连接测试成功！
-                    <br><small>响应时间: ${data.response_time}ms</small>
-                    <br><small>模型: ${data.model}</small>
-                </div>
-            `;
-        } else {
-            resultDiv.innerHTML = `
-                <div class="alert alert-danger">
-                    <i class="bi bi-exclamation-triangle"></i> AI连接测试失败: ${data.error}
-                </div>
-            `;
-        }
-    })
-    .catch(error => {
-        resultDiv.innerHTML = `
-            <div class="alert alert-danger">
-                <i class="bi bi-exclamation-triangle"></i> 测试出错: ${error.message}
-            </div>
-        `;
-    })
-    .finally(() => {
-        btn.innerHTML = originalText;
-        btn.disabled = false;
-    });
-});
-</script>
-
 <style>
-.provider-card {
-    cursor: pointer;
-    transition: all 0.3s ease;
-    border: 2px solid #dee2e6;
-}
-
-.provider-card:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-}
-
-.provider-card.border-primary {
-    border-color: #0d6efd !important;
-}
-
-.provider-card input[type="radio"] {
-    display: none;
-}
+.required-field::after { content: " *"; color: red; }
 </style>
+
+<script>
+(function() {
+    const sel = document.getElementById('model_preset');
+    const hint = document.getElementById('presetHint');
+    const advanced = document.getElementById('advancedBlock');
+
+    function updatePresetUI() {
+        const opt = sel.options[sel.selectedIndex];
+        const isCustom = sel.value === '__custom__';
+        if (isCustom) {
+            hint.textContent = '';
+            advanced.open = true;
+            document.getElementById('model_name').required = true;
+        } else {
+            const bu = opt.getAttribute('data-base-url') || '';
+            const m = opt.getAttribute('data-model') || '';
+            hint.innerHTML = bu
+                ? '<code>' + bu + '</code> · model <code>' + m + '</code>'
+                : '<span class="text-muted">model <code>' + m + '</code></span>';
+            advanced.open = false;
+            document.getElementById('model_name').required = false;
+        }
+    }
+
+    sel.addEventListener('change', updatePresetUI);
+    updatePresetUI();
+})();
+</script>
 {% endblock %}

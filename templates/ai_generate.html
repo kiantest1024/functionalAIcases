@@ -1,6 +1,6 @@
 {% extends "ai_base.html" %}
 
-{% block title %}AI智能生成 - 功能测试用例生成器{% endblock %}
+{% block title %}{{ texts.get('ai_page_title', 'AI智能生成') }}{% endblock %}
 
 {% block content %}
 <div class="row">
@@ -8,194 +8,162 @@
         <div class="card">
             <div class="card-header bg-gradient text-white" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
                 <h4 class="mb-0">
-                    <i class="bi bi-robot"></i> AI智能生成功能测试用例
+                    <i class="bi bi-robot"></i> {{ texts.get('ai_page_title', 'AI智能生成功能测试用例') }}
                 </h4>
+                <small>{{ texts.get('ai_page_subtitle', '使用真实AI大模型智能分析需求并生成测试用例') }}</small>
             </div>
             <div class="card-body">
-                <div class="alert alert-info" role="alert">
-                    <h6 class="alert-heading"><i class="bi bi-lightbulb"></i> AI增强特性</h6>
-                    <p class="mb-0">
-                        AI将自动分析您的需求文档，识别复杂度、风险区域和关键路径，
-                        然后结合8种测试方法生成更智能、更全面的测试用例。
+                {% if my_running_jobs %}
+                <div class="alert alert-warning d-flex flex-wrap align-items-center gap-2" role="alert">
+                    <span><i class="bi bi-hourglass-split"></i> <strong>{{ texts.get('my_running_banner', '进行中的任务：') }}</strong></span>
+                    {% for job in my_running_jobs %}
+                    <a class="btn btn-sm btn-outline-dark" href="{{ url_for('ai_generation_status_page', generation_id=job.generation_id) }}">
+                        {{ job.generation_id[:8] }}… · {{ job.progress }}%
+                    </a>
+                    {% endfor %}
+                </div>
+                {% endif %}
+                {% if prefill_source_id %}
+                <div class="alert alert-secondary" role="alert">
+                    <i class="bi bi-info-circle"></i> {{ texts.get('prefill_from_history_hint', '表单已从历史任务预填。') }}
+                </div>
+                {% endif %}
+                <!-- AI配置状态显示 -->
+                <div class="alert {% if ai_config %}alert-success{% else %}alert-warning{% endif %}" role="alert">
+                    <h6 class="alert-heading">
+                        <i class="bi bi-{% if ai_config %}check-circle{% else %}exclamation-triangle{% endif %}"></i> 
+                        {{ texts.get('ai_config_status', 'AI配置状态') }}
+                    </h6>
+                    {% if ai_config %}
+                    <div class="row">
+                        <div class="col-md-4">
+                            <strong><i class="bi bi-cloud"></i> {{ texts.get('current_provider', '当前提供商') }}:</strong> 
+                            <span class="badge bg-primary">{{ ai_config.provider }}</span>
+                        </div>
+                        <div class="col-md-4">
+                            <strong><i class="bi bi-cpu"></i> {{ texts.get('current_model', '当前模型') }}:</strong> 
+                            <span class="badge bg-info">{{ ai_config.model }}</span>
+                        </div>
+                        <div class="col-md-4">
+                            <strong><i class="bi bi-check-circle"></i> {{ texts.get('ai_configured', 'AI已配置') }}</strong>
+                        </div>
+                    </div>
+                    {% else %}
+                    <p class="mb-2">
+                        <i class="bi bi-x-circle"></i> {{ texts.get('ai_not_configured', 'AI未配置') }}
                     </p>
+                    <a href="{{ url_for('ai_config') }}" class="btn btn-sm btn-warning">
+                        <i class="bi bi-gear"></i> {{ texts.get('go_to_config', '前往配置') }}
+                    </a>
+                    {% endif %}
                 </div>
                 
-                <form method="POST" action="{{ url_for('ai_generate') }}">
+                <div class="alert alert-info" role="alert">
+                    <h6 class="alert-heading"><i class="bi bi-lightbulb"></i> {{ texts.get('ai_features', 'AI增强特性') }}</h6>
+                    <p class="mb-0">{{ texts.get('ai_intro', '利用先进的AI大语言模型，智能分析您的需求文档，自动识别测试场景、生成测试用例、优化测试步骤。') }}</p>
+                </div>
+                
+                <form method="POST" action="{{ url_for('ai_generate') }}" enctype="multipart/form-data">
                     <!-- 需求文档输入 -->
                     <div class="mb-4">
-                        <label for="requirement_text" class="form-label">
-                            <i class="bi bi-file-text"></i> 需求文档内容 <span class="text-danger">*</span>
+                        <label for="requirement_text" class="form-label required-field">
+                            <i class="bi bi-file-text"></i> {{ texts.get('requirement_document', '需求文档内容') }}
                         </label>
                         <textarea class="form-control" id="requirement_text" name="requirement_text" 
-                                rows="12" required placeholder="请输入需求文档内容，AI将自动分析以下信息：
-
-📋 功能描述和模块划分
-🔍 业务规则和约束条件  
-📊 输入字段和数据类型
-🔄 状态转换和工作流程
-🔗 集成点和外部依赖
-⚠️ 潜在风险和安全考虑
-🎯 性能要求和可用性需求
-
-示例：
-电商订单管理系统
-
-功能：订单处理和管理
-模块：订单系统、支付系统、库存系统
-
-输入字段：
-- 商品ID：数字类型，必填，范围1-999999
-- 商品数量：整数，必填，范围1-99
-- 用户ID：字符串，必填，长度8-20
-- 收货地址：文本，必填，最大500字符
-- 支付方式：枚举，必填（支付宝/微信/银行卡）
-
-业务规则：
-1. 下单时需要验证库存充足
-2. 支付成功后自动减少库存
-3. 订单超过30分钟未支付自动取消
-4. VIP用户享受优先处理
-
-状态转换：
-待支付 -> 已支付 -> 已发货 -> 已收货 -> 已完成
-待支付 -> 已取消
-
-集成点：
-- 第三方支付接口
-- 物流查询接口  
-- 库存管理系统
-- 用户管理系统
-
-性能要求：
-- 订单创建响应时间 < 2秒
-- 支持1000并发用户
-- 99.9%可用性
-
-安全要求：
-- 支付信息加密传输
-- 用户权限验证
-- 防止重复提交"></textarea>
+                                rows="12" required 
+                                placeholder="{{ texts.get('requirement_placeholder', '请输入需求文档内容，支持复制粘贴图片...') }}">{{ prefill_requirement or '' }}</textarea>
                         <div class="form-text">
                             <i class="bi bi-info-circle"></i> 
-                            AI将分析文档中的业务规则、数据模式、风险区域等信息，生成针对性的测试用例
+                            {{ texts.get('ai_analysis_hint', 'AI将分析文档中的业务规则、数据模式、风险区域等信息') }}
+                            | <i class="bi bi-image"></i> {{ texts.get('image_upload_hint', '支持复制粘贴图片或直接上传') }}
                         </div>
                     </div>
 
-                    <!-- AI增强级别 -->
-                    <div class="mb-4">
-                        <label class="form-label">
-                            <i class="bi bi-cpu"></i> AI增强级别
-                        </label>
-                        <div class="row">
-                            <div class="col-md-4">
-                                <div class="card ai-level-card" data-level="basic">
-                                    <div class="card-body text-center">
-                                        <input type="radio" name="ai_enhancement_level" value="basic" id="level_basic" class="form-check-input">
-                                        <label for="level_basic" class="form-check-label w-100">
-                                            <h6 class="mt-2">基础AI增强</h6>
-                                            <p class="small text-muted">标准测试方法 + 基础AI分析</p>
-                                            <div class="badge bg-success">快速</div>
-                                        </label>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="col-md-4">
-                                <div class="card ai-level-card" data-level="medium">
-                                    <div class="card-body text-center">
-                                        <input type="radio" name="ai_enhancement_level" value="medium" id="level_medium" class="form-check-input" checked>
-                                        <label for="level_medium" class="form-check-label w-100">
-                                            <h6 class="mt-2">标准AI增强</h6>
-                                            <p class="small text-muted">全面AI分析 + 智能优化</p>
-                                            <div class="badge bg-primary">推荐</div>
-                                        </label>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="col-md-4">
-                                <div class="card ai-level-card" data-level="advanced">
-                                    <div class="card-body text-center">
-                                        <input type="radio" name="ai_enhancement_level" value="advanced" id="level_advanced" class="form-check-input">
-                                        <label for="level_advanced" class="form-check-label w-100">
-                                            <h6 class="mt-2">高级AI增强</h6>
-                                            <p class="small text-muted">深度分析 + 预测性测试</p>
-                                            <div class="badge bg-warning">全面</div>
-                                        </label>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- 历史缺陷输入 -->
                     <div class="mb-4">
                         <label for="historical_defects" class="form-label">
-                            <i class="bi bi-bug"></i> 历史缺陷列表 <span class="text-muted">(可选，AI将进行缺陷模式分析)</span>
+                            <i class="bi bi-bug"></i> {{ texts.get('historical_defects_label', '历史缺陷（可选）') }}
                         </label>
-                        <textarea class="form-control" id="historical_defects" name="historical_defects" 
-                                rows="6" placeholder="每行输入一个历史缺陷，AI将分析缺陷模式并生成预测性测试用例：
+                        <textarea class="form-control" id="historical_defects" name="historical_defects" rows="4"
+                                  placeholder="{{ texts.get('historical_defects_placeholder', '') }}">{{ prefill_historical_defects or '' }}</textarea>
+                    </div>
 
-订单支付时出现SQL注入漏洞
-高并发下库存数据不一致
-用户权限验证可以被绕过
-支付接口超时未正确处理
-订单状态更新时出现死锁
-XSS攻击导致用户信息泄露
-缓存数据未及时更新导致显示错误
-文件上传功能存在安全漏洞"></textarea>
+                    <div class="mb-4">
+                        <label for="iteration_context" class="form-label">
+                            <i class="bi bi-diagram-3"></i> {{ texts.get('iteration_context_label', '') }}
+                        </label>
+                        <textarea class="form-control" id="iteration_context" name="iteration_context" rows="4"
+                                  placeholder="{{ texts.get('iteration_context_placeholder', '') }}">{{ prefill_iteration_context or '' }}</textarea>
+                    </div>
+
+                    <div class="mb-4">
+                        <label for="code_change_summary" class="form-label">
+                            <i class="bi bi-file-diff"></i> {{ texts.get('code_change_summary_label', '') }}
+                        </label>
+                        <textarea class="form-control font-monospace small" id="code_change_summary" name="code_change_summary" rows="5"
+                                  placeholder="{{ texts.get('code_change_summary_placeholder', '') }}">{{ prefill_code_change_summary or '' }}</textarea>
+                    </div>
+
+                    <!-- 图片上传区域 -->
+                    <div class="mb-4">
+                        <label for="image_upload" class="form-label">
+                            <i class="bi bi-card-image"></i> {{ texts.get('upload_image', '上传图片附件（可选）') }}
+                        </label>
+                        <input type="file" class="form-control" id="image_upload" name="images" 
+                               accept="image/*" multiple>
                         <div class="form-text">
                             <i class="bi bi-info-circle"></i> 
-                            AI将分析历史缺陷模式，生成智能回归测试和预测性错误测试用例
+                            {{ texts.get('image_format_hint', '支持多张图片上传，格式：JPG, PNG, GIF, BMP 等') }}
                         </div>
+                    </div>
+
+                    <!-- 图片预览区域 -->
+                    <div class="mb-4" id="image-preview-container" style="display: none;">
+                        <label class="form-label">
+                            <i class="bi bi-eye"></i> {{ texts.get('image_preview', '图片预览') }}
+                        </label>
+                        <div id="image-preview" class="d-flex flex-wrap gap-2"></div>
                     </div>
 
                     <!-- 自定义字段标题 -->
                     <div class="mb-4">
                         <label for="custom_headers" class="form-label">
-                            <i class="bi bi-gear"></i> 自定义字段标题 <span class="text-muted">(可选)</span>
+                            <i class="bi bi-table"></i> {{ texts.get('custom_headers_label', '自定义字段标题（可选）') }}
                         </label>
-                        <textarea class="form-control" id="custom_headers" name="custom_headers" 
-                                rows="4" placeholder='JSON格式，自定义输出表格的字段标题：
-
-{
-    "Module": "功能模块",
-    "CaseID": "测试编号", 
-    "TestSteps": "操作步骤",
-    "Expected": "期望结果",
-    "Priority": "重要程度",
-    "Remark": "AI分析备注"
-}'></textarea>
+                        <textarea class="form-control font-monospace" 
+                                  id="custom_headers" 
+                                  name="custom_headers" 
+                                  rows="3" 
+                                  placeholder="{{ texts.get('custom_headers_placeholder_i18n', '') }}">{{ prefill_custom_headers or '' }}</textarea>
                         <div class="form-text">
                             <i class="bi bi-info-circle"></i> 
-                            使用JSON格式自定义输出表格的字段标题
+                            {{ texts.get('custom_headers_hint', '各字段用<strong>逗号</strong>分隔（支持中文“，”或英文“,”）。不填写则使用默认双语模板。')|safe }}<br>
+                            <small class="text-muted">{{ texts.get('default_template_hint', '默认模板：用例编号 | Use Case #、模块 | Module、子模块 | Submodule、用例标题 | Use Case Title、预置条件 | Present Condition、用例步骤 | Use case steps、预期结果 | Expected result、实际结果 | Actual result、测试负责人 | Test owner、优先级 | Priority、是否执行 | Whether to implement、是否评审 | Whether to review、备注 | Remarks') }}</small>
                         </div>
                     </div>
 
-                    <!-- 实时AI分析预览 -->
+                    <!-- 测试用例语言选择 -->
                     <div class="mb-4">
-                        <div class="card bg-light">
-                            <div class="card-header">
-                                <h6 class="mb-0">
-                                    <i class="bi bi-eye"></i> 实时AI分析预览
-                                    <button type="button" class="btn btn-sm btn-outline-primary float-end" id="analyzeBtn">
-                                        <i class="bi bi-search"></i> 分析需求
-                                    </button>
-                                </h6>
-                            </div>
-                            <div class="card-body">
-                                <div id="aiAnalysisPreview">
-                                    <p class="text-muted">输入需求文档后，点击"分析需求"查看AI分析结果</p>
-                                </div>
-                            </div>
+                        <label for="test_case_language" class="form-label">
+                            <i class="bi bi-translate"></i> {{ texts.get('language_selection', '测试用例语言') }}
+                        </label>
+                        <select class="form-select" id="test_case_language" name="test_case_language">
+                            <option value="auto" {% if (prefill_test_case_language or 'auto') == 'auto' %}selected{% endif %}>{{ texts.get('follow_ui_language', '') }} ({{ texts.get('language_chinese', '') if lang == 'zh' else texts.get('language_english', 'English') }})</option>
+                            <option value="zh" {% if prefill_test_case_language == 'zh' %}selected{% endif %}>{{ texts.get('chinese_only', '仅中文') }}</option>
+                            <option value="en" {% if prefill_test_case_language == 'en' %}selected{% endif %}>{{ texts.get('english_only', '仅英文') }}</option>
+                        </select>
+                        <div class="form-text">
+                            <i class="bi bi-info-circle"></i> 
+                            {{ texts.get('language_hint', '选择生成的测试用例内容使用的语言（不影响字段标题）') }}
                         </div>
                     </div>
 
                     <!-- 提交按钮 -->
                     <div class="d-grid gap-2 d-md-flex justify-content-md-end">
                         <a href="{{ url_for('index') }}" class="btn btn-outline-secondary me-md-2">
-                            <i class="bi bi-arrow-left"></i> 返回首页
+                            <i class="bi bi-arrow-left"></i> {{ texts.get('btn_back', '返回') }}
                         </a>
-                        <button type="submit" class="btn btn-primary btn-lg">
-                            <i class="bi bi-robot"></i> AI智能生成测试用例
+                        <button type="submit" class="btn btn-primary btn-lg" id="generateBtn">
+                            <i class="bi bi-robot"></i> {{ texts.get('btn_generate', '生成测试用例') }}
                         </button>
                     </div>
                 </form>
@@ -204,208 +172,394 @@ XSS攻击导致用户信息泄露
     </div>
 </div>
 
-<!-- AI增强说明 -->
-<div class="row mt-4">
-    <div class="col-12">
-        <div class="card bg-light">
-            <div class="card-header">
-                <h5 class="mb-0">
-                    <i class="bi bi-info-circle"></i> AI增强说明
-                </h5>
+<!-- 加载蒙版 -->
+<div id="loadingOverlay" class="position-fixed top-0 start-0 w-100 h-100 d-none" style="background: rgba(0,0,0,0.7); z-index: 9999;">
+    <div class="position-absolute top-50 start-50 translate-middle text-center">
+        <div class="spinner-border text-light mb-3" role="status" style="width: 4rem; height: 4rem;">
+            <span class="visually-hidden">Loading...</span>
+        </div>
+        <div class="text-white">
+            <h4 class="mb-3">🤖 {{ texts.get('overlay_generating_title', '') }}</h4>
+            <p class="mb-2" id="progressText">{{ texts.get('overlay_analyzing_doc', '') }}</p>
+            <div class="progress" style="width: 300px; height: 25px;">
+                <div class="progress-bar progress-bar-striped progress-bar-animated bg-success" 
+                     role="progressbar" id="progressBar" style="width: 0%">0%</div>
             </div>
-            <div class="card-body">
-                <div class="row">
-                    <div class="col-md-6">
-                        <h6><i class="bi bi-brain text-primary"></i> AI分析能力：</h6>
-                        <ul class="list-unstyled">
-                            <li><i class="bi bi-check text-success"></i> 自动计算需求复杂度评分</li>
-                            <li><i class="bi bi-check text-success"></i> 智能识别安全和性能风险</li>
-                            <li><i class="bi bi-check text-success"></i> 提取关键业务路径</li>
-                            <li><i class="bi bi-check text-success"></i> 分析数据模式和约束</li>
-                            <li><i class="bi bi-check text-success"></i> 识别集成点和依赖关系</li>
-                        </ul>
-                    </div>
-                    <div class="col-md-6">
-                        <h6><i class="bi bi-gear-wide-connected text-success"></i> AI增强测试：</h6>
-                        <ul class="list-unstyled">
-                            <li><i class="bi bi-check text-success"></i> 基于复杂度的自适应边界值测试</li>
-                            <li><i class="bi bi-check text-success"></i> 语义驱动的等价类划分</li>
-                            <li><i class="bi bi-check text-success"></i> 上下文感知的场景测试</li>
-                            <li><i class="bi bi-check text-success"></i> 预测性错误分析</li>
-                            <li><i class="bi bi-check text-success"></i> 智能优先级调整和覆盖度优化</li>
-                        </ul>
-                    </div>
-                </div>
-            </div>
+            <p class="mt-3 text-muted small">
+                <i class="bi bi-info-circle"></i> {{ texts.get('overlay_page_background', '') }}
+            </p>
         </div>
     </div>
 </div>
-{% endblock %}
 
-{% block scripts %}
+<!-- 图片粘贴和自动上传功能 -->
 <script>
-// AI级别选择效果
-document.addEventListener('DOMContentLoaded', function() {
-    const levelCards = document.querySelectorAll('.ai-level-card');
-    const radios = document.querySelectorAll('input[name="ai_enhancement_level"]');
-    
-    // 初始化选中状态
-    updateLevelCardStyles();
-    
-    levelCards.forEach(card => {
-        card.addEventListener('click', function() {
-            const level = this.dataset.level;
-            const radio = document.getElementById(`level_${level}`);
-            radio.checked = true;
-            updateLevelCardStyles();
-        });
-    });
-    
-    radios.forEach(radio => {
-        radio.addEventListener('change', updateLevelCardStyles);
-    });
-    
-    function updateLevelCardStyles() {
-        levelCards.forEach(card => {
-            const level = card.dataset.level;
-            const radio = document.getElementById(`level_${level}`);
+(function() {
+    const textarea = document.getElementById('requirement_text');
+    const imageUpload = document.getElementById('image_upload');
+    const imagePreviewContainer = document.getElementById('image-preview-container');
+    const imagePreview = document.getElementById('image-preview');
+    let uploadedImages = [];
+    let uploadQueue = [];
+    let isUploading = false;
+
+    // 处理粘贴事件 - 支持多图片自动上传
+    textarea.addEventListener('paste', function(e) {
+        const items = (e.clipboardData || e.originalEvent.clipboardData).items;
+        let hasImage = false;
+        
+        // 收集所有图片
+        const imageFiles = [];
+        for (let item of items) {
+            if (item.type.indexOf('image') !== -1) {
+                hasImage = true;
+                imageFiles.push(item.getAsFile());
+            }
+        }
+        
+        // 如果有图片，阻止默认粘贴行为
+        if (hasImage) {
+            e.preventDefault();
             
-            if (radio.checked) {
-                card.classList.add('border-primary', 'bg-primary', 'text-white');
-                card.classList.remove('border-light');
-            } else {
-                card.classList.remove('border-primary', 'bg-primary', 'text-white');
-                card.classList.add('border-light');
+            // 批量处理所有图片
+            const start = textarea.selectionStart;
+            let placeholders = '';
+            
+            imageFiles.forEach((blob, index) => {
+                const filename = blob.name || `pasted-image-${Date.now()}-${index}.png`;
+                const uploadingTag = `[上传中: ${filename}]`;
+                placeholders += (index > 0 ? ' ' : '') + uploadingTag;
+                
+                // 添加到上传队列
+                uploadQueue.push({
+                    blob: blob,
+                    filename: filename,
+                    uploadingTag: uploadingTag,
+                    insertPosition: start
+                });
+            });
+            
+            // 插入所有占位符
+            const text = textarea.value;
+            textarea.value = text.substring(0, start) + placeholders + text.substring(start);
+            
+            // 启动批量上传
+            processUploadQueue();
+        }
+    });
+
+    // 批量处理上传队列 - 性能优化
+    function processUploadQueue() {
+        if (isUploading || uploadQueue.length === 0) return;
+        
+        isUploading = true;
+        
+        // 并发上传多个图片（最多3个同时上传）
+        const batchSize = 3;
+        const batch = uploadQueue.splice(0, batchSize);
+        
+        const uploadPromises = batch.map(item => 
+            uploadImageToServer(item.blob, item.filename, item.uploadingTag)
+        );
+        
+        Promise.all(uploadPromises).then(() => {
+            isUploading = false;
+            // 继续处理剩余队列
+            if (uploadQueue.length > 0) {
+                processUploadQueue();
             }
         });
     }
-});
 
-// 实时AI分析
-document.getElementById('analyzeBtn').addEventListener('click', function() {
-    const requirementText = document.getElementById('requirement_text').value.trim();
+    // 上传图片到服务器 - 优化版
+    function uploadImageToServer(blob, filename, uploadingTag) {
+        return new Promise((resolve, reject) => {
+            const formData = new FormData();
+            formData.append('image', blob, filename);
+            
+            fetch('/upload_image', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // 上传成功，更新textarea中的占位符
+                    const imageTag = `[Image: ${data.filename}]`;
+                    textarea.value = textarea.value.replace(uploadingTag, imageTag);
+                    
+                    // 异步添加预览（不阻塞主线程）
+                    requestAnimationFrame(() => {
+                        addImagePreviewOptimized(data.filename, data.url, blob);
+                    });
+                    
+                    resolve();
+                } else {
+                    // 上传失败
+                    textarea.value = textarea.value.replace(uploadingTag, `[上传失败]`);
+                    console.error('Upload failed:', data.error);
+                    resolve();
+                }
+            })
+            .catch(error => {
+                console.error('Upload error:', error);
+                textarea.value = textarea.value.replace(uploadingTag, `[上传错误]`);
+                resolve();
+            });
+        });
+    }
+
+    // 优化的预览添加（使用文档片段减少重排）
+    function addImagePreviewOptimized(filename, url, blob) {
+        uploadedImages.push({name: filename, url: url, file: blob});
+        
+        // 使用 DocumentFragment 减少 DOM 操作
+        const fragment = document.createDocumentFragment();
+        const previewItem = document.createElement('div');
+        previewItem.className = 'position-relative';
+        previewItem.style.width = '150px';
+        
+        // 创建图片预览（延迟加载）
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            previewItem.innerHTML = `
+                <img src="${e.target.result}" class="img-thumbnail" style="width: 150px; height: 150px; object-fit: cover;" loading="lazy">
+                <div class="small text-truncate mt-1" style="width: 150px;" title="${filename}">${filename}</div>
+                <span class="badge bg-success position-absolute top-0 start-0 m-1">
+                    <i class="bi bi-check-circle"></i>
+                </span>
+                <button type="button" class="btn btn-sm btn-danger position-absolute top-0 end-0 m-1" 
+                        onclick="removeImage(${uploadedImages.length - 1})">
+                    <i class="bi bi-x"></i>
+                </button>
+            `;
+        };
+        reader.readAsDataURL(blob);
+        
+        fragment.appendChild(previewItem);
+        imagePreview.appendChild(fragment);
+        imagePreviewContainer.style.display = 'block';
+    }
+
+    // 处理文件上传
+    imageUpload.addEventListener('change', function(e) {
+        const files = Array.from(e.target.files);
+        const imageFiles = files.filter(f => f.type.indexOf('image') !== -1);
+        
+        if (imageFiles.length === 0) return;
+        
+        // 批量添加占位符
+        let placeholders = '';
+        imageFiles.forEach((file, index) => {
+            const uploadingTag = `[上传中: ${file.name}]`;
+            placeholders += (index > 0 ? ' ' : '') + uploadingTag;
+            
+            uploadQueue.push({
+                blob: file,
+                filename: file.name,
+                uploadingTag: uploadingTag,
+                insertPosition: textarea.value.length
+            });
+        });
+        
+        textarea.value += '\n' + placeholders + '\n';
+        processUploadQueue();
+    });
+
+    // 删除图片
+    window.removeImage = function(index) {
+        const image = uploadedImages[index];
+        if (!image) return;
+        
+        // 从 textarea 中删除引用
+        const imageTag = `[Image: ${image.name}]`;
+        textarea.value = textarea.value.replace(imageTag, '');
+        
+        uploadedImages.splice(index, 1);
+        if (imagePreview.children[index]) {
+            imagePreview.children[index].remove();
+        }
+        
+        if (uploadedImages.length === 0) {
+            imagePreviewContainer.style.display = 'none';
+        }
+    };
+
+    // 拖放上传功能 - 优化版
+    let dragCounter = 0;
     
-    if (!requirementText) {
-        alert('请先输入需求文档内容');
+    textarea.addEventListener('dragenter', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        dragCounter++;
+        if (dragCounter === 1) {
+            textarea.style.borderColor = '#667eea';
+            textarea.style.backgroundColor = '#f8f9ff';
+        }
+    });
+
+    textarea.addEventListener('dragleave', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        dragCounter--;
+        if (dragCounter === 0) {
+            textarea.style.borderColor = '';
+            textarea.style.backgroundColor = '';
+        }
+    });
+    
+    textarea.addEventListener('dragover', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+    });
+
+    textarea.addEventListener('drop', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        dragCounter = 0;
+        textarea.style.borderColor = '';
+        textarea.style.backgroundColor = '';
+        
+        const files = Array.from(e.dataTransfer.files);
+        const imageFiles = files.filter(f => f.type.indexOf('image') !== -1);
+        
+        if (imageFiles.length === 0) return;
+        
+        let placeholders = '';
+        imageFiles.forEach((file, index) => {
+            const uploadingTag = `[上传中: ${file.name}]`;
+            placeholders += (index > 0 ? ' ' : '') + uploadingTag;
+            
+            uploadQueue.push({
+                blob: file,
+                filename: file.name,
+                uploadingTag: uploadingTag,
+                insertPosition: textarea.value.length
+            });
+        });
+        
+        textarea.value += '\n' + placeholders + '\n';
+        processUploadQueue();
+    });
+})();
+
+// 进度指示器和表单提交处理 - 等待DOM加载完成
+window.addEventListener('DOMContentLoaded', function() {
+    const form = document.querySelector('form');
+    const loadingOverlay = document.getElementById('loadingOverlay');
+    const progressBar = document.getElementById('progressBar');
+    const progressText = document.getElementById('progressText');
+    const generateBtn = document.getElementById('generateBtn');
+
+    // 检查元素是否存在
+    if (!form || !loadingOverlay || !progressBar || !progressText || !generateBtn) {
+        console.error('进度指示器元素未找到！');
         return;
     }
-    
-    const btn = this;
-    const originalText = btn.innerHTML;
-    btn.innerHTML = '<i class="bi bi-hourglass-split"></i> 分析中...';
-    btn.disabled = true;
-    
-    fetch('/ai_analysis', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-            requirement_text: requirementText
-        })
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            displayAnalysisResult(data.analysis, data.recommendations);
-        } else {
-            document.getElementById('aiAnalysisPreview').innerHTML = 
-                `<div class="alert alert-danger">分析失败: ${data.error}</div>`;
-        }
-    })
-    .catch(error => {
-        document.getElementById('aiAnalysisPreview').innerHTML = 
-            `<div class="alert alert-danger">分析出错: ${error.message}</div>`;
-    })
-    .finally(() => {
-        btn.innerHTML = originalText;
-        btn.disabled = false;
+
+    // 标记是否正在生成（用于beforeunload判断）
+    let isGenerating = false;
+    let allowNavigation = false;  // 允许导航标志
+    let progressInterval = null;
+
+    // 模拟进度更新
+    function simulateProgress() {
+        let progress = 0;
+        const stages = [
+            { percent: 15, text: '正在分析需求文档...' },
+            { percent: 30, text: '提取功能点...' },
+            { percent: 45, text: 'AI正在生成测试用例...' },
+            { percent: 60, text: '验证格式规范...' },
+            { percent: 75, text: '优化测试步骤...' },
+            { percent: 90, text: '生成Excel报告...' },
+            { percent: 95, text: '完成最后处理...' }
+        ];
+        
+        let currentStage = 0;
+        const interval = setInterval(() => {
+            if (currentStage < stages.length) {
+                const stage = stages[currentStage];
+                progress = stage.percent;
+                progressBar.style.width = progress + '%';
+                progressBar.textContent = progress + '%';
+                progressText.textContent = stage.text;
+                currentStage++;
+            } else {
+                clearInterval(interval);
+            }
+        }, 2000); // 每2秒更新一次
+        
+        // 保存interval ID以便后续清理
+        return interval;
+    }
+
+    // 表单提交事件
+    form.addEventListener('submit', function(e) {
+        console.log('表单提交，显示加载蒙版');
+        
+        // 允许本次表单提交的导航
+        allowNavigation = true;
+        isGenerating = true;
+        
+        // 显示加载蒙版
+        loadingOverlay.classList.remove('d-none');
+        generateBtn.disabled = true;
+        
+        // 重置进度
+        progressBar.style.width = '0%';
+        progressBar.textContent = '0%';
+        progressText.textContent = '正在分析需求文档...';
+        
+        // 启动进度模拟
+        progressInterval = simulateProgress();
+        
+        // 短暂延迟后禁止意外导航（避免表单提交被拦截）
+        setTimeout(() => {
+            allowNavigation = false;
+        }, 500);
+        
+        // 允许表单正常提交
+        // （不阻止默认行为）
     });
-});
 
-function displayAnalysisResult(analysis, recommendations) {
-    const preview = document.getElementById('aiAnalysisPreview');
-    
-    let html = `
-        <div class="row">
-            <div class="col-md-6">
-                <h6><i class="bi bi-speedometer2 text-primary"></i> 复杂度分析</h6>
-                <div class="progress mb-2">
-                    <div class="progress-bar bg-${getComplexityColor(analysis.complexity_score)}" 
-                         style="width: ${analysis.complexity_score * 100}%"></div>
-                </div>
-                <small>复杂度评分: ${analysis.complexity_score.toFixed(2)} (${analysis.complexity_level})</small>
-                
-                ${analysis.risk_areas.length > 0 ? `
-                <h6 class="mt-3"><i class="bi bi-exclamation-triangle text-warning"></i> 风险区域</h6>
-                <ul class="list-unstyled">
-                    ${analysis.risk_areas.slice(0, 3).map(risk => `<li><span class="badge bg-warning me-1">⚠️</span>${risk}</li>`).join('')}
-                </ul>
-                ` : ''}
-            </div>
-            <div class="col-md-6">
-                ${analysis.critical_paths.length > 0 ? `
-                <h6><i class="bi bi-diagram-3 text-info"></i> 关键路径</h6>
-                <ul class="list-unstyled">
-                    ${analysis.critical_paths.slice(0, 3).map(path => `<li><span class="badge bg-info me-1">🛤️</span>${path}</li>`).join('')}
-                </ul>
-                ` : ''}
-                
-                ${recommendations.length > 0 ? `
-                <h6><i class="bi bi-lightbulb text-success"></i> AI建议</h6>
-                <ul class="list-unstyled">
-                    ${recommendations.slice(0, 2).map(rec => `<li><span class="badge bg-success me-1">💡</span>${rec}</li>`).join('')}
-                </ul>
-                ` : ''}
-            </div>
-        </div>
-    `;
-    
-    preview.innerHTML = html;
-}
-
-function getComplexityColor(score) {
-    if (score > 0.7) return 'danger';
-    if (score > 0.4) return 'warning';
-    return 'success';
-}
-
-// JSON格式验证
-document.getElementById('custom_headers').addEventListener('blur', function() {
-    const value = this.value.trim();
-    if (value && value !== '') {
-        try {
-            JSON.parse(value);
-            this.classList.remove('is-invalid');
-            this.classList.add('is-valid');
-        } catch (e) {
-            this.classList.remove('is-valid');
-            this.classList.add('is-invalid');
+    // 页面关闭/离开时保持进度状态
+    window.addEventListener('beforeunload', function(e) {
+        // 只有在正在生成且不允许导航时才提示
+        if (isGenerating && !allowNavigation) {
+            const message = 'AI正在后台生成测试用例，请勿关闭页面';
+            e.preventDefault();
+            e.returnValue = message;
+            return message;
         }
-    } else {
-        this.classList.remove('is-invalid', 'is-valid');
+    });
+
+    // 检测页面加载后是否有成功消息（如果是POST请求返回）
+    const alerts = document.querySelectorAll('.alert-success, .alert-danger');
+    if (alerts.length > 0 && progressInterval) {
+        clearInterval(progressInterval);
+        loadingOverlay.classList.add('d-none');
+        generateBtn.disabled = false;
+        isGenerating = false;
     }
 });
 </script>
 
 <style>
-.ai-level-card {
-    cursor: pointer;
+#requirement_text {
     transition: all 0.3s ease;
-    border: 2px solid #dee2e6;
 }
 
-.ai-level-card:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+#requirement_text:focus {
+    box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
 }
 
-.ai-level-card.border-primary {
-    border-color: #0d6efd !important;
+.img-thumbnail {
+    transition: transform 0.2s;
 }
 
-.ai-level-card input[type="radio"] {
-    display: none;
+.img-thumbnail:hover {
+    transform: scale(1.05);
+    cursor: pointer;
 }
 </style>
 {% endblock %}

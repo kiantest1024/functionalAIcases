@@ -1,54 +1,554 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="{{ lang or 'zh' }}">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}AI增强功能测试用例生成器{% endblock %}</title>
+    <meta name="description" content="{{ texts.get('app_full_name', '') }} — {{ texts.get('meta_description_suffix', '') }}">
+    <title>{% block title %}{{ texts.get('app_full_name', 'AI增强功能测试用例生成器') }}{% endblock %}</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.7.2/font/bootstrap-icons.css" rel="stylesheet">
     <style>
+        /* === 基础样式 - Nielsen Principles Applied === */
+        :root {
+            --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --primary-gradient-hover: linear-gradient(135deg, #5a6fd8 0%, #6a4190 100%);
+            --primary-color: #667eea;
+            --success-color: #10b981;
+            --warning-color: #f59e0b;
+            --danger-color: #ef4444;
+            --info-color: #3b82f6;
+            --border-radius: 8px;
+            --transition-speed: 0.3s;
+            --box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            --box-shadow-hover: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            background-color: #f8f9fa;
+            color: #1f2937;
+            line-height: 1.6;
+        }
+        
+        main {
+            flex: 1;
+        }
+        
+        /* === Principle 1: Visibility of System Status === */
+        .status-indicator {
+            display: inline-flex;
+            align-items: center;
+            padding: 0.625rem 1rem;
+            border-radius: var(--border-radius);
+            font-size: 0.875rem;
+            font-weight: 500;
+            animation: fadeInSlide 0.3s ease;
+            gap: 0.5rem;
+        }
+        
+        .status-indicator.processing {
+            background-color: #dbeafe;
+            color: #1e40af;
+            border-left: 3px solid var(--info-color);
+        }
+        
+        .status-indicator.success {
+            background-color: #d1fae5;
+            color: #065f46;
+            border-left: 3px solid var(--success-color);
+        }
+        
+        .status-indicator.error {
+            background-color: #fee2e2;
+            color: #991b1b;
+            border-left: 3px solid var(--danger-color);
+        }
+        
+        @keyframes fadeInSlide {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .progress-bar-wrapper {
+            margin: 1rem 0;
+        }
+        
+        .progress {
+            height: 8px;
+            border-radius: 10px;
+            background-color: #e5e7eb;
+        }
+        
+        .progress-bar {
+            transition: width 0.5s ease;
+            border-radius: 10px;
+        }
+        
+        /* === 导航栏优化 === */
         .navbar-brand {
             font-weight: bold;
+            font-size: 1.25rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            transition: all var(--transition-speed);
         }
+        
+        .navbar-brand:hover {
+            transform: scale(1.05);
+        }
+        
+        .navbar-brand i {
+            font-size: 1.5rem;
+            animation: pulse 2s ease-in-out infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+        }
+        
+        .navbar {
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            padding: 0.75rem 0;
+        }
+        
+        .navbar .nav-link {
+            padding: 0.5rem 1rem;
+            transition: all var(--transition-speed);
+            border-radius: var(--border-radius);
+            margin: 0 0.125rem;
+            position: relative;
+        }
+        
+        .navbar .nav-link:hover {
+            background-color: rgba(255, 255, 255, 0.15);
+            transform: translateY(-2px);
+        }
+        
+        .navbar .nav-link.active {
+            background-color: rgba(255, 255, 255, 0.25);
+            font-weight: 600;
+        }
+        
+        .navbar .nav-link.active::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 30px;
+            height: 3px;
+            background-color: white;
+            border-radius: 2px;
+        }
+        
+        /* === 卡片和容器 === */
+        .card {
+            border-radius: var(--border-radius);
+            border: 1px solid #e5e7eb;
+            box-shadow: var(--box-shadow);
+            transition: all var(--transition-speed);
+            background: white;
+            overflow: hidden;
+        }
+        
+        .card:hover {
+            box-shadow: var(--box-shadow-hover);
+            transform: translateY(-4px);
+            border-color: var(--primary-color);
+        }
+        
         .card-header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: var(--primary-gradient);
+            color: white;
+            border-radius: 0;
+            font-weight: 600;
+            padding: 1rem 1.25rem;
+            border-bottom: none;
+        }
+        
+        .card-body {
+            padding: 1.5rem;
+        }
+        
+        .card-footer {
+            background-color: #f9fafb;
+            border-top: 1px solid #e5e7eb;
+            padding: 1rem 1.25rem;
+        }
+        
+        /* === 按钮优化 === */
+        .btn {
+            border-radius: var(--border-radius);
+            padding: 0.625rem 1.25rem;
+            font-weight: 500;
+            transition: all var(--transition-speed);
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            border: none;
+            cursor: pointer;
+        }
+        
+        .btn:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: var(--box-shadow-hover);
+        }
+        
+        .btn:active:not(:disabled) {
+            transform: translateY(0);
+        }
+        
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+        
+        .btn-primary {
+            background: var(--primary-gradient);
+            border: none;
             color: white;
         }
-        .btn-primary {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            border: none;
-        }
+        
         .btn-primary:hover {
-            background: linear-gradient(135deg, #5a6fd8 0%, #6a4190 100%);
+            background: var(--primary-gradient-hover);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
         }
+        
+        /* === Principle 5: Error Prevention === */
+        .form-label {
+            font-weight: 600;
+            color: #374151;
+            margin-bottom: 0.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.25rem;
+        }
+        
+        .required-field::after {
+            content: "*";
+            color: var(--danger-color);
+            margin-left: 0.25rem;
+            font-weight: bold;
+        }
+        
+        .form-control, .form-select {
+            border-radius: var(--border-radius);
+            border: 2px solid #e5e7eb;
+            padding: 0.625rem 1rem;
+            transition: all var(--transition-speed);
+        }
+        
+        .form-control:focus, .form-select:focus {
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+            outline: none;
+        }
+        
+        .form-control.is-invalid {
+            border-color: var(--danger-color);
+            background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12' width='12' height='12' fill='none' stroke='%23dc3545'%3e%3ccircle cx='6' cy='6' r='4.5'/%3e%3cpath stroke-linejoin='round' d='M5.8 3.6h.4L6 6.5z'/%3e%3ccircle cx='6' cy='8.2' r='.6' fill='%23dc3545' stroke='none'/%3e%3c/svg%3e");
+            background-repeat: no-repeat;
+            background-position: right calc(0.375em + 0.1875rem) center;
+            background-size: calc(0.75em + 0.375rem) calc(0.75em + 0.375rem);
+            padding-right: calc(1.5em + 0.75rem);
+        }
+        
+        .form-control.is-valid {
+            border-color: var(--success-color);
+            background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 8'%3e%3cpath fill='%2310b981' d='M2.3 6.73L.6 4.53c-.4-1.04.46-1.4 1.1-.8l1.1 1.4 3.4-3.8c.6-.63 1.6-.27 1.2.7l-4 4.6c-.43.5-.8.4-1.1.1z'/%3e%3c/svg%3e");
+            background-repeat: no-repeat;
+            background-position: right calc(0.375em + 0.1875rem) center;
+            background-size: calc(0.75em + 0.375rem) calc(0.75em + 0.375rem);
+            padding-right: calc(1.5em + 0.75rem);
+        }
+        
+        .invalid-feedback, .valid-feedback {
+            display: block;
+            margin-top: 0.25rem;
+            font-size: 0.875rem;
+            font-weight: 500;
+        }
+        
+        /* === Principle 6: Recognition Rather than Recall === */
+        .tooltip-helper {
+            color: #6b7280;
+            cursor: help;
+            font-size: 0.875rem;
+            margin-left: 0.25rem;
+        }
+        
+        .inline-help {
+            font-size: 0.875rem;
+            color: #6b7280;
+            margin-top: 0.25rem;
+            display: flex;
+            align-items: start;
+            gap: 0.5rem;
+        }
+        
+        .contextual-help {
+            background: #eff6ff;
+            border-left: 4px solid var(--info-color);
+            border-radius: var(--border-radius);
+            padding: 0.875rem 1rem;
+            margin: 0.75rem 0;
+            font-size: 0.875rem;
+        }
+        
+        /* === 辅助样式 === */
         .feature-card {
-            transition: transform 0.2s;
+            transition: transform var(--transition-speed);
         }
+        
         .feature-card:hover {
-            transform: translateY(-5px);
+            transform: translateY(-8px);
         }
+        
         .stats-card {
             border-left: 4px solid #667eea;
         }
+        
         .method-badge {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: var(--primary-gradient);
+            padding: 0.4rem 0.8rem;
+            border-radius: 20px;
         }
-        .footer {
-            background-color: #f8f9fa;
-            margin-top: 50px;
-            padding: 20px 0;
-        }
+        
         .bg-gradient {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+            background: var(--primary-gradient) !important;
+        }
+        
+        /* === 提示和警告 === */
+        .alert {
+            border-radius: var(--border-radius);
+            border-left: 4px solid;
+            padding: 1rem;
+            margin: 1rem 0;
+            display: flex;
+            align-items: start;
+            gap: 0.75rem;
+            animation: fadeInSlide 0.3s ease;
+        }
+        
+        .alert-info {
+            background-color: #e7f3ff;
+            border-left-color: var(--info-color);
+            color: #1e3a8a;
+        }
+        
+        .alert-success {
+            background-color: #d1fae5;
+            border-left-color: var(--success-color);
+            color: #065f46;
+        }
+        
+        .alert-warning {
+            background-color: #fef3c7;
+            border-left-color: var(--warning-color);
+            color: #92400e;
+        }
+        
+        .alert-danger {
+            background-color: #fee2e2;
+            border-left-color: var(--danger-color);
+            color: #991b1b;
+        }
+        
+        /* === Principle 9: Help Users Recover from Errors === */
+        .error-message {
+            background-color: #fef2f2;
+            border-left: 4px solid var(--danger-color);
+            border-radius: var(--border-radius);
+            padding: 1rem 1.25rem;
+            margin: 1rem 0;
+        }
+        
+        .error-title {
+            font-weight: 600;
+            color: #991b1b;
+            margin-bottom: 0.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .error-description {
+            color: #7f1d1d;
+            font-size: 0.875rem;
+            margin-bottom: 0.75rem;
+        }
+        
+        .error-solutions {
+            margin-top: 0.75rem;
+            padding-left: 1.25rem;
+        }
+        
+        .error-solutions li {
+            margin-bottom: 0.375rem;
+            color: #7f1d1d;
+            font-size: 0.875rem;
+        }
+        
+        /* === Principle 7: Flexibility and Efficiency of Use === */
+        .keyboard-shortcut {
+            background: #f3f4f6;
+            border: 1px solid #d1d5db;
+            border-radius: 4px;
+            padding: 0.125rem 0.5rem;
+            font-size: 0.75rem;
+            font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, monospace;
+            color: #374151;
+            font-weight: 600;
+        }
+        
+        .quick-actions {
+            position: fixed;
+            bottom: 2rem;
+            right: 2rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+            z-index: 1000;
+        }
+        
+        .quick-action-btn {
+            width: 56px;
+            height: 56px;
+            border-radius: 50%;
+            background: var(--primary-gradient);
+            color: white;
+            border: none;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            cursor: pointer;
+            transition: all var(--transition-speed) ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.25rem;
+        }
+        
+        .quick-action-btn:hover {
+            transform: scale(1.1);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+        
+        .quick-action-btn:active {
+            transform: scale(1.05);
+        }
+        
+        /* === 加载状态 === */
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.9);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+        }
+        
+        .loading-overlay.show {
+            display: flex;
+        }
+        
+        /* === 页脚 === */
+        .footer {
+            background: linear-gradient(180deg, #f8f9fa 0%, #e9ecef 100%);
+            margin-top: 50px;
+            padding: 40px 0 30px;
+            border-top: 3px solid var(--primary-color);
+            box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.05);
+        }
+        
+        .footer h6 {
+            color: #374151;
+            font-weight: 700;
+            margin-bottom: 1rem;
+            font-size: 1rem;
+        }
+        
+        .footer a {
+            transition: all var(--transition-speed);
+        }
+        
+        .footer a:hover {
+            color: var(--primary-color) !important;
+            transform: translateX(3px);
+        }
+        
+        .footer .method-badge {
+            transition: all var(--transition-speed);
+        }
+        
+        .footer .method-badge:hover {
+            transform: scale(1.1);
+            box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+        }
+        
+        /* === 响应式优化 === */
+        @media (max-width: 768px) {
+            .navbar-brand {
+                font-size: 0.9rem;
+            }
+            
+            .btn {
+                padding: 0.5rem 1rem;
+                font-size: 0.9rem;
+            }
+            
+            .card {
+                margin-bottom: 1rem;
+            }
+        }
+        
+        /* === 辅助工具类 === */
+        .cursor-pointer {
+            cursor: pointer;
+        }
+        
+        .text-gradient {
+            background: var(--primary-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        /* === 语言切换 === */
+        .dropdown-item.active {
+            background-color: rgba(102, 126, 234, 0.1);
+            color: #667eea;
+            font-weight: 600;
+        }
+        
+        #languageDropdown {
+            min-width: 120px;
         }
     </style>
 </head>
 <body>
+    <!-- 加载提示覆盖 -->
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="text-center">
+            <div class="spinner-border text-primary" style="width: 3rem; height: 3rem;" role="status">
+                <span class="visually-hidden">加载中...</span>
+            </div>
+            <p class="mt-3 text-primary fw-bold">正在处理，请稍候...</p>
+        </div>
+    </div>
+
     <!-- AI增强导航栏 -->
     <nav class="navbar navbar-expand-lg navbar-dark bg-gradient">
         <div class="container">
             <a class="navbar-brand" href="{{ url_for('index') }}">
-                <i class="bi bi-robot"></i> AI增强功能测试用例生成器
+                <i class="bi bi-robot"></i> {{ texts.get('app_name', 'AI测试用例生成器') }}
             </a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
                 <span class="navbar-toggler-icon"></span>
@@ -56,42 +556,64 @@
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav ms-auto">
                     <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('index') }}">
-                            <i class="bi bi-house"></i> AI首页
+                        <a class="nav-link {% if request.endpoint == 'index' %}active{% endif %}" href="{{ url_for('index') }}">
+                            <i class="bi bi-house-fill"></i> {{ texts.get('nav_home', '首页') }}
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('ai_generate') }}">
-                            <i class="bi bi-robot"></i> AI智能生成
+                        <a class="nav-link {% if request.endpoint == 'professional_generate' %}active{% endif %}" 
+                           href="{{ url_for('professional_generate') }}">
+                            <i class="bi bi-award-fill"></i> {{ texts.get('nav_professional', '专业生成') }}
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('ai_smart_template') }}">
-                            <i class="bi bi-lightbulb"></i> AI智能模板
+                        <a class="nav-link {% if request.endpoint == 'ai_generate' %}active{% endif %}" 
+                           href="{{ url_for('ai_generate') }}">
+                            <i class="bi bi-robot"></i> {{ texts.get('nav_ai_generate', 'AI生成') }}
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('ai_config') }}">
-                            <i class="bi bi-gear"></i> AI配置
+                        <a class="nav-link {% if request.endpoint == 'ai_generation_history' %}active{% endif %}" 
+                           href="{{ url_for('ai_generation_history') }}">
+                            <i class="bi bi-clock-history"></i> {{ texts.get('nav_generation_history', '生成历史') }}
                         </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint == 'ai_smart_template' %}active{% endif %}" 
+                           href="{{ url_for('ai_smart_template') }}">
+                            <i class="bi bi-file-earmark-text-fill"></i> {{ texts.get('nav_smart_template', '智能模板') }}
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint == 'ai_config' %}active{% endif %}" 
+                           href="{{ url_for('ai_config') }}">
+                            <i class="bi bi-gear-fill"></i> {{ texts.get('nav_ai_config', 'AI配置') }}
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <button class="nav-link btn btn-link" onclick="showHelpModal()" 
+                                style="border: none; background: none; color: inherit;">
+                            <i class="bi bi-question-circle-fill"></i> {{ texts.get('nav_help', '帮助') }}
+                        </button>
                     </li>
                     <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown">
-                            <i class="bi bi-gear"></i> 传统版本
+                        <a class="nav-link dropdown-toggle" href="#" id="languageDropdown" role="button" 
+                           data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="bi bi-translate"></i> {{ texts.get('language_chinese' if lang == 'zh' else 'language_english', 'Language') }}
                         </a>
-                        <ul class="dropdown-menu">
-                            <li><a class="dropdown-item" href="http://localhost:5000/" target="_blank">
-                                <i class="bi bi-house"></i> 传统首页
-                            </a></li>
-                            <li><a class="dropdown-item" href="http://localhost:5000/generate" target="_blank">
-                                <i class="bi bi-plus-circle"></i> 传统生成
-                            </a></li>
-                            <li><a class="dropdown-item" href="http://localhost:5000/template" target="_blank">
-                                <i class="bi bi-file-earmark-text"></i> 传统模板
-                            </a></li>
-                            <li><a class="dropdown-item" href="http://localhost:5000/batch" target="_blank">
-                                <i class="bi bi-stack"></i> 批量生成
-                            </a></li>
+                        <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="languageDropdown">
+                            <li>
+                                <a class="dropdown-item {% if lang == 'zh' %}active{% endif %}" 
+                                   href="{{ url_for('change_language', lang='zh') }}">
+                                    🇨🇳 {{ texts.get('language_chinese', '中文') }}
+                                </a>
+                            </li>
+                            <li>
+                                <a class="dropdown-item {% if lang == 'en' %}active{% endif %}" 
+                                   href="{{ url_for('change_language', lang='en') }}">
+                                    🇺🇸 {{ texts.get('language_english', 'English') }}
+                                </a>
+                            </li>
                         </ul>
                     </li>
                 </ul>
@@ -104,9 +626,13 @@
         {% if messages %}
             <div class="container mt-3">
                 {% for category, message in messages %}
-                    <div class="alert alert-{{ 'danger' if category == 'error' else 'success' }} alert-dismissible fade show" role="alert">
-                        <i class="bi bi-{{ 'exclamation-triangle' if category == 'error' else 'check-circle' }}"></i>
-                        {{ message }}
+                    {% set alert_cls = 'danger' if category == 'error' else ('warning' if category == 'warning' else 'success') %}
+                    {% set alert_icon = 'check-circle-fill' if category == 'success' else 'exclamation-triangle-fill' %}
+                    <div class="alert alert-{{ alert_cls }} alert-dismissible fade show" role="alert">
+                        <div class="d-flex align-items-center">
+                            <i class="bi bi-{{ alert_icon }} me-2 fs-5"></i>
+                            <strong>{{ message }}</strong>
+                        </div>
                         <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
                     </div>
                 {% endfor %}
@@ -118,42 +644,454 @@
     <main class="container mt-4">
         {% block content %}{% endblock %}
     </main>
+    
+    <!-- Quick Actions Floating Button (Nielsen Principle 7: Efficiency) -->
+    <div class="quick-actions">
+        <button class="quick-action-btn" onclick="showHelpModal()" data-bs-toggle="tooltip" data-bs-placement="left" title="{{ texts.get('nav_help', 'Help') }} (F1)">
+            <i class="bi bi-question-circle-fill"></i>
+        </button>
+        <button class="quick-action-btn" onclick="window.scrollTo({top: 0, behavior: 'smooth'})" data-bs-toggle="tooltip" data-bs-placement="left" title="{{ 'Back to Top' if lang == 'en' else '返回顶部' }}">
+            <i class="bi bi-arrow-up-circle-fill"></i>
+        </button>
+    </div>
 
     <!-- AI增强页脚 -->
     <footer class="footer mt-5">
         <div class="container">
             <div class="row">
-                <div class="col-md-6">
-                    <h6><i class="bi bi-robot"></i> AI增强功能测试用例生成器</h6>
-                    <p class="text-muted">结合人工智能和8种测试设计方法的专业测试工具</p>
+                <div class="col-md-4">
+                    <h6><i class="bi bi-robot"></i> {{ texts.get('app_name', 'AI测试用例生成器') }}</h6>
+                    <p class="text-muted small">{{ texts.get('footer_desc', '智能、高效、专业的测试用例生成工具') }}</p>
+                    <p class="text-muted small mb-0">
+                        <i class="bi bi-shield-check"></i> {{ texts.get('footer_desc', '安全可靠') if lang == 'zh' else 'Secure & Reliable' }} |
+                        <i class="bi bi-lightning-charge"></i> {{ '快速高效' if lang == 'zh' else 'Fast & Efficient' }} |
+                        <i class="bi bi-cpu"></i> {{ 'AI驱动' if lang == 'zh' else 'AI-Powered' }}
+                    </p>
                 </div>
-                <div class="col-md-6 text-end">
-                    <h6>AI增强测试方法</h6>
-                    <div class="d-flex flex-wrap justify-content-end">
-                        <span class="badge method-badge me-1 mb-1">智能边界分析</span>
-                        <span class="badge method-badge me-1 mb-1">语义等价类</span>
-                        <span class="badge method-badge me-1 mb-1">上下文场景</span>
-                        <span class="badge method-badge me-1 mb-1">预测性错误</span>
-                        <span class="badge method-badge me-1 mb-1">自适应组合</span>
-                        <span class="badge method-badge me-1 mb-1">风险优先级</span>
-                        <span class="badge method-badge me-1 mb-1">覆盖度优化</span>
-                        <span class="badge method-badge me-1 mb-1">智能回归</span>
+                <div class="col-md-4">
+                    <h6>{{ texts.get('footer_links', '快速链接') }}</h6>
+                    <ul class="list-unstyled small">
+                        <li><a href="{{ url_for('professional_generate') }}" class="text-muted text-decoration-none"><i class="bi bi-arrow-right"></i> {{ texts.get('nav_professional', '专业生成') }}</a></li>
+                        <li><a href="{{ url_for('ai_generate') }}" class="text-muted text-decoration-none"><i class="bi bi-arrow-right"></i> {{ texts.get('btn_ai_generate', 'AI智能生成') }}</a></li>
+                        <li><a href="{{ url_for('ai_smart_template') }}" class="text-muted text-decoration-none"><i class="bi bi-arrow-right"></i> {{ texts.get('nav_smart_template', '智能模板') }}</a></li>
+                        <li><a href="{{ url_for('ai_config') }}" class="text-muted text-decoration-none"><i class="bi bi-arrow-right"></i> {{ texts.get('nav_ai_config', 'AI配置') }}</a></li>
+                    </ul>
+                </div>
+                <div class="col-md-4">
+                    <h6>{{ texts.get('footer_methods', 'AI测试方法') }}</h6>
+                    <div class="d-flex flex-wrap">
+                        <span class="badge method-badge me-1 mb-1 small">{{ '智能边界' if lang == 'zh' else 'Smart Boundary' }}</span>
+                        <span class="badge method-badge me-1 mb-1 small">{{ '语义等价' if lang == 'zh' else 'Semantic Equiv' }}</span>
+                        <span class="badge method-badge me-1 mb-1 small">{{ '场景分析' if lang == 'zh' else 'Scenario' }}</span>
+                        <span class="badge method-badge me-1 mb-1 small">{{ '预测错误' if lang == 'zh' else 'Predictive' }}</span>
+                        <span class="badge method-badge me-1 mb-1 small">{{ '自适应组合' if lang == 'zh' else 'Adaptive' }}</span>
+                        <span class="badge method-badge me-1 mb-1 small">{{ '风险优先' if lang == 'zh' else 'Risk Priority' }}</span>
+                        <span class="badge method-badge me-1 mb-1 small">{{ '覆盖优化' if lang == 'zh' else 'Coverage Opt' }}</span>
+                        <span class="badge method-badge me-1 mb-1 small">{{ '智能回归' if lang == 'zh' else 'Smart Regression' }}</span>
                     </div>
                 </div>
             </div>
             <hr>
             <div class="row">
                 <div class="col-12 text-center">
-                    <p class="text-muted mb-0">
-                        &copy; 2025 AI增强功能测试用例生成器 | 
-                        <i class="bi bi-cpu"></i> 资深测试架构师兼AI专家设计
+                    <p class="text-muted mb-0 small">
+                        {{ texts.get('footer_copyright', '&copy; 2025 AI增强功能测试用例生成器 | Powered by AI') | safe }}
                     </p>
                 </div>
             </div>
         </div>
     </footer>
 
+    <!-- 帮助模态框 -->
+    <div class="modal fade" id="helpModal" tabindex="-1">
+        <div class="modal-dialog modal-lg modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header bg-gradient text-white">
+                    <h5 class="modal-title"><i class="bi bi-question-circle-fill"></i> {{ texts.get('help_modal_title', '使用帮助') }}</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="accordion" id="helpAccordion">
+                        <!-- 快速入门 -->
+                        <div class="accordion-item">
+                            <h2 class="accordion-header">
+                                <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#help1">
+                                    <i class="bi bi-rocket-takeoff me-2"></i> {{ texts.get('help_section_quickstart', '快速入门') }}
+                                </button>
+                            </h2>
+                            <div id="help1" class="accordion-collapse collapse show" data-bs-parent="#helpAccordion">
+                                <div class="accordion-body">
+                                    {% if lang == 'zh' %}
+                                    <h6>1. 选择生成方式</h6>
+                                    <ul>
+                                        <li><strong>专业生成</strong>: 推荐！使用真实AI大模型生成高质量专业测试用例</li>
+                                        <li><strong>AI生成</strong>: 结合AI分析和8种测试方法的智能生成</li>
+                                        <li><strong>智能模板</strong>: 使用预设模板快速生成</li>
+                                    </ul>
+                                    <h6>2. 输入需求文档</h6>
+                                    <p>详细描述功能需求、业务规则、输入字段、状态转换等信息</p>
+                                    <h6>3. 生成测试用例</h6>
+                                    <p>点击生成按钮，AI将自动分析并生成测试用例</p>
+                                    <h6>4. 下载导出</h6>
+                                    <p>支持导出为Excel和Markdown格式</p>
+                                    {% else %}
+                                    <h6>1. Choose Generation Method</h6>
+                                    <ul>
+                                        <li><strong>Professional</strong>: Recommended! Use real AI models to generate high-quality professional test cases</li>
+                                        <li><strong>AI Generate</strong>: Intelligent generation combining AI analysis and 8 testing methods</li>
+                                        <li><strong>Smart Template</strong>: Quick generation using preset templates</li>
+                                    </ul>
+                                    <h6>2. Input Requirement Document</h6>
+                                    <p>Describe functional requirements, business rules, input fields, state transitions, etc. in detail</p>
+                                    <h6>3. Generate Test Cases</h6>
+                                    <p>Click the generate button, AI will automatically analyze and generate test cases</p>
+                                    <h6>4. Download and Export</h6>
+                                    <p>Support exporting to Excel and Markdown formats</p>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- AI配置 -->
+                        <div class="accordion-item">
+                            <h2 class="accordion-header">
+                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#help2">
+                                    <i class="bi bi-gear me-2"></i> {{ texts.get('help_section_ai_config', 'AI配置说明') }}
+                                </button>
+                            </h2>
+                            <div id="help2" class="accordion-collapse collapse" data-bs-parent="#helpAccordion">
+                                <div class="accordion-body">
+                                    {% if lang == 'zh' %}
+                                    <p>配置真实AI大模型以获得最佳生成效果：</p>
+                                    <ul>
+                                        <li>支持 OpenAI、Claude、通义千问、文心一言、智谱GLM 等多种AI服务</li>
+                                        <li>需要提供相应的 API Key 和 Base URL</li>
+                                        <li>配置后会自动保存，下次使用时无需重新配置</li>
+                                        <li>可随时更新或删除配置</li>
+                                    </ul>
+                                    {% else %}
+                                    <p>Configure real AI large models for best generation results:</p>
+                                    <ul>
+                                        <li>Supports OpenAI, Claude, Qwen, ERNIE, ChatGLM, and other AI services</li>
+                                        <li>Requires providing corresponding API Key and Base URL</li>
+                                        <li>Configuration is automatically saved for future use</li>
+                                        <li>Can update or delete configuration at any time</li>
+                                    </ul>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- 最佳实践 -->
+                        <div class="accordion-item">
+                            <h2 class="accordion-header">
+                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#help3">
+                                    <i class="bi bi-lightbulb me-2"></i> {{ texts.get('help_section_practices', '最佳实践') }}
+                                </button>
+                            </h2>
+                            <div id="help3" class="accordion-collapse collapse" data-bs-parent="#helpAccordion">
+                                <div class="accordion-body">
+                                    {% if lang == 'zh' %}
+                                    <h6>需求文档编写建议：</h6>
+                                    <ul>
+                                        <li>清晰描述功能目标和业务场景</li>
+                                        <li>详细列出所有输入字段及其约束条件</li>
+                                        <li>明确业务规则和状态转换流程</li>
+                                        <li>说明集成点和外部依赖</li>
+                                        <li>提供性能和安全要求</li>
+                                    </ul>
+                                    <h6>提高测试用例质量：</h6>
+                                    <ul>
+                                        <li>提供历史缺陷信息以生成针对性回归测试</li>
+                                        <li>选择合适的AI增强级别</li>
+                                        <li>使用AI分析功能预览需求分析结果</li>
+                                    </ul>
+                                    {% else %}
+                                    <h6>Requirements Documentation Tips:</h6>
+                                    <ul>
+                                        <li>Clearly describe functional objectives and business scenarios</li>
+                                        <li>List all input fields and their constraints in detail</li>
+                                        <li>Clarify business rules and state transition processes</li>
+                                        <li>Explain integration points and external dependencies</li>
+                                        <li>Provide performance and security requirements</li>
+                                    </ul>
+                                    <h6>Improve Test Case Quality:</h6>
+                                    <ul>
+                                        <li>Provide historical defect information for targeted regression tests</li>
+                                        <li>Choose appropriate AI enhancement level</li>
+                                        <li>Use AI analysis to preview requirement analysis results</li>
+                                    </ul>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- 常见问题 -->
+                        <div class="accordion-item">
+                            <h2 class="accordion-header">
+                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#help4">
+                                    <i class="bi bi-question-circle me-2"></i> {{ texts.get('help_section_faq', '常见问题') }}
+                                </button>
+                            </h2>
+                            <div id="help4" class="accordion-collapse collapse" data-bs-parent="#helpAccordion">
+                                <div class="accordion-body">
+                                    {% if lang == 'zh' %}
+                                    <h6>Q: 未配置AI时能否使用？</h6>
+                                    <p>A: 可以！系统会自动使用本地AI算法生成测试用例，但质量不如真实AI大模型。</p>
+                                    
+                                    <h6>Q: 生成速度慢怎么办？</h6>
+                                    <p>A: AI分析需要时间，请耐心等待。如果超时，可以简化需求描述或降低AI增强级别。</p>
+                                    
+                                    <h6>Q: 导出的文件在哪里？</h6>
+                                    <p>A: 生成结果页面会提供下载链接，文件保存在outputs目录中。</p>
+                                    {% else %}
+                                    <h6>Q: Can I use it without AI configuration?</h6>
+                                    <p>A: Yes! The system will automatically use local AI algorithms to generate test cases, but quality is not as good as real AI models.</p>
+                                    
+                                    <h6>Q: What if generation is slow?</h6>
+                                    <p>A: AI analysis takes time, please be patient. If it times out, simplify the requirement description or reduce AI enhancement level.</p>
+                                    
+                                    <h6>Q: Where are the exported files?</h6>
+                                    <p>A: The generation results page will provide download links, files are saved in the outputs directory.</p>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{{ texts.get('close', '关闭') }}</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // === Nielsen Principle 1: Visibility of System Status ===
+        // Global help function
+        function showHelpModal() {
+            const helpModal = new bootstrap.Modal(document.getElementById('helpModal'));
+            helpModal.show();
+        }
+        
+        // Enhanced loading indicator
+        function showLoading(message = 'Processing, please wait...') {
+            const overlay = document.getElementById('loadingOverlay');
+            if (overlay) {
+                const textElement = overlay.querySelector('p');
+                if (textElement) {
+                    textElement.textContent = message;
+                }
+                overlay.classList.add('show');
+            }
+        }
+        
+        function hideLoading() {
+            const overlay = document.getElementById('loadingOverlay');
+            if (overlay) {
+                overlay.classList.remove('show');
+            }
+        }
+        
+        // === Nielsen Principle 5: Error Prevention ===
+        // Real-time form validation
+        function initFormValidation() {
+            const forms = document.querySelectorAll('form');
+            forms.forEach(form => {
+                const inputs = form.querySelectorAll('input[required], textarea[required], select[required]');
+                
+                inputs.forEach(input => {
+                    // Add required field indicator
+                    const label = form.querySelector(`label[for="${input.id}"]`);
+                    if (label && !label.classList.contains('required-field')) {
+                        label.classList.add('required-field');
+                    }
+                    
+                    // Real-time validation on blur
+                    input.addEventListener('blur', function() {
+                        validateField(this);
+                    });
+                    
+                    // Clear validation on input
+                    input.addEventListener('input', function() {
+                        if (this.classList.contains('is-invalid')) {
+                            validateField(this);
+                        }
+                    });
+                });
+                
+                // Prevent submission of invalid forms
+                form.addEventListener('submit', function(e) {
+                    let isValid = true;
+                    inputs.forEach(input => {
+                        if (!validateField(input)) {
+                            isValid = false;
+                        }
+                    });
+                    
+                    if (!isValid) {
+                        e.preventDefault();
+                        showNotification('Please fix the errors before submitting', 'error');
+                        // Focus on first invalid field
+                        const firstInvalid = form.querySelector('.is-invalid');
+                        if (firstInvalid) {
+                            firstInvalid.focus();
+                            firstInvalid.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        }
+                    }
+                });
+            });
+        }
+        
+        function validateField(field) {
+            const value = field.value.trim();
+            let isValid = true;
+            let errorMessage = '';
+            
+            // Required field validation
+            if (field.hasAttribute('required') && !value) {
+                isValid = false;
+                errorMessage = 'This field is required';
+            }
+            
+            // Email validation
+            if (field.type === 'email' && value && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) {
+                isValid = false;
+                errorMessage = 'Please enter a valid email address';
+            }
+            
+            // Minimum length validation
+            if (field.minLength > 0 && value && value.length < field.minLength) {
+                isValid = false;
+                errorMessage = `Minimum length is ${field.minLength} characters`;
+            }
+            
+            // Update field status
+            if (isValid) {
+                field.classList.remove('is-invalid');
+                field.classList.add('is-valid');
+                removeFieldError(field);
+            } else {
+                field.classList.remove('is-valid');
+                field.classList.add('is-invalid');
+                showFieldError(field, errorMessage);
+            }
+            
+            return isValid;
+        }
+        
+        function showFieldError(field, message) {
+            removeFieldError(field);
+            const errorDiv = document.createElement('div');
+            errorDiv.className = 'invalid-feedback';
+            errorDiv.textContent = message;
+            errorDiv.id = `${field.id}-error`;
+            field.parentNode.appendChild(errorDiv);
+        }
+        
+        function removeFieldError(field) {
+            const errorDiv = document.getElementById(`${field.id}-error`);
+            if (errorDiv) {
+                errorDiv.remove();
+            }
+        }
+        
+        // === Nielsen Principle 1: Visibility of System Status ===
+        // Toast notifications for user feedback
+        function showNotification(message, type = 'info') {
+            const toastContainer = getOrCreateToastContainer();
+            const toast = createToast(message, type);
+            toastContainer.appendChild(toast);
+            
+            const bsToast = new bootstrap.Toast(toast);
+            bsToast.show();
+            
+            // Remove after hidden
+            toast.addEventListener('hidden.bs.toast', () => {
+                toast.remove();
+            });
+        }
+        
+        function getOrCreateToastContainer() {
+            let container = document.getElementById('toast-container');
+            if (!container) {
+                container = document.createElement('div');
+                container.id = 'toast-container';
+                container.className = 'toast-container position-fixed top-0 end-0 p-3';
+                container.style.zIndex = '1070';
+                document.body.appendChild(container);
+            }
+            return container;
+        }
+        
+        function createToast(message, type) {
+            const toast = document.createElement('div');
+            toast.className = 'toast align-items-center text-white border-0';
+            toast.setAttribute('role', 'alert');
+            toast.setAttribute('aria-live', 'assertive');
+            toast.setAttribute('aria-atomic', 'true');
+            
+            const bgClass = {
+                'success': 'bg-success',
+                'error': 'bg-danger',
+                'warning': 'bg-warning',
+                'info': 'bg-info'
+            }[type] || 'bg-info';
+            
+            toast.classList.add(bgClass);
+            
+            const icon = {
+                'success': '✓',
+                'error': '✕',
+                'warning': '⚠',
+                'info': 'ⓘ'
+            }[type] || 'ⓘ';
+            
+            toast.innerHTML = `
+                <div class="d-flex">
+                    <div class="toast-body">
+                        <strong>${icon}</strong> ${message}
+                    </div>
+                    <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+                </div>
+            `;
+            
+            return toast;
+        }
+        
+        // === Nielsen Principle 7: Flexibility and Efficiency ===
+        // Keyboard shortcuts
+        document.addEventListener('keydown', function(e) {
+            // F1: Show help
+            if (e.key === 'F1') {
+                e.preventDefault();
+                showHelpModal();
+            }
+            
+            // Ctrl/Cmd + S: Remind to use generate button
+            if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+                e.preventDefault();
+                showNotification('Use the "Generate" button to save your work', 'info');
+            }
+        });
+        
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            initFormValidation();
+            
+            // Add tooltips to all elements with data-bs-toggle="tooltip"
+            const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+            tooltipTriggerList.map(function (tooltipTriggerEl) {
+                return new bootstrap.Tooltip(tooltipTriggerEl);
+            });
+        });
+        
+        // Page load complete - hide loading
+        window.addEventListener('load', function() {
+            hideLoading();
+        });
+    </script>
     {% block scripts %}{% endblock %}
 </body>
 </html>

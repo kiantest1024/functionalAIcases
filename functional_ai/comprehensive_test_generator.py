@@ -5,8 +5,8 @@
 解决用例标题缺失和覆盖面不足的问题
 """
 
-from test_case_generator import TestCase, TestCaseGenerator, Priority, TestMethod, RequirementAnalysis
-from test_step_optimizer import TestStepOptimizer
+from .test_case_generator import TestCase, TestCaseGenerator, Priority, TestMethod, RequirementAnalysis
+from .test_step_optimizer import TestStepOptimizer
 from typing import List
 import re
 

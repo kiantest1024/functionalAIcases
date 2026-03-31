@@ -1,0 +1,129 @@
+{% extends "ai_base.html" %}
+
+{% block title %}{{ texts.get('history_title', '生成历史') }}{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+        <div>
+            <h2 class="mb-1"><i class="bi bi-clock-history"></i> {{ texts.get('history_title', 'AI 生成历史') }}</h2>
+            <p class="text-muted mb-0 small">{{ texts.get('history_subtitle', '') }}</p>
+        </div>
+        <div class="btn-group">
+            {% if mine_only %}
+            <a class="btn btn-outline-primary" href="{{ url_for('ai_generation_history') }}">{{ texts.get('history_filter_all', '查看全部') }}</a>
+            {% else %}
+            <a class="btn btn-outline-primary" href="{{ url_for('ai_generation_history', mine=1) }}">{{ texts.get('history_filter_mine', '仅看我的') }}</a>
+            {% endif %}
+            <a class="btn btn-primary" href="{{ url_for('ai_generate') }}"><i class="bi bi-plus-lg"></i> {{ texts.get('nav_ai_generate', 'AI生成') }}</a>
+        </div>
+    </div>
+
+    <div class="card mb-4 shadow-sm">
+        <div class="card-header bg-info text-white">
+            <i class="bi bi-activity"></i> {{ texts.get('history_active_section', '进行中') }}
+        </div>
+        <div class="card-body p-0">
+            {% if active_jobs %}
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>{{ texts.get('history_col_title', '标题') }}</th>
+                            <th>{{ texts.get('history_col_status', '状态') }}</th>
+                            <th>{{ texts.get('history_col_client', '会话') }}</th>
+                            <th>{{ texts.get('history_col_actions', '操作') }}</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for j in active_jobs %}
+                        <tr>
+                            <td>
+                                <small class="text-muted font-monospace">{{ j.generation_id[:8] }}…</small><br>
+                                {{ j.title or '—' }}
+                                {% if j.maybe_stale %}
+                                <span class="badge bg-secondary ms-1" title="{{ texts.get('history_stale_hint', '') }}">{{ texts.get('history_stale_hint', '或已停滞') }}</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <span class="badge bg-primary">{{ j.status }}</span>
+                                <small class="text-muted d-block">{{ j.progress }}%</small>
+                            </td>
+                            <td><code>{{ j.client_short or '—' }}</code></td>
+                            <td>
+                                <a class="btn btn-sm btn-outline-primary" href="{{ url_for('ai_generation_status_page', generation_id=j.generation_id) }}">
+                                    <i class="bi bi-bar-chart-steps"></i> {{ texts.get('history_action_progress', '查看进度') }}
+                                </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <p class="text-muted mb-0 p-3">{{ texts.get('history_no_active', '当前没有进行中的任务') }}</p>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="card shadow-sm">
+        <div class="card-header bg-secondary text-white">
+            <i class="bi bi-list-ul"></i> {{ texts.get('history_list_section', '历史记录') }}
+        </div>
+        <div class="card-body p-0">
+            {% if history_jobs %}
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>{{ texts.get('history_col_time', '时间') }}</th>
+                            <th>{{ texts.get('history_col_title', '标题') }}</th>
+                            <th>{{ texts.get('history_col_status', '状态') }}</th>
+                            <th>{{ texts.get('history_col_client', '会话') }}</th>
+                            <th>{{ texts.get('history_col_actions', '操作') }}</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for h in history_jobs %}
+                        <tr>
+                            <td><small>{{ h.updated_at or h.created_at }}</small></td>
+                            <td>{{ h.title or '—' }}</td>
+                            <td>
+                                {% if h.status == 'completed' %}
+                                <span class="badge bg-success">{{ texts.get('history_status_completed', '成功') }}</span>
+                                {% elif h.status == 'error' %}
+                                <span class="badge bg-danger">{{ texts.get('history_status_error', '失败') }}</span>
+                                {% else %}
+                                <span class="badge bg-primary">{{ texts.get('history_status_running', '进行中') }}</span>
+                                {% endif %}
+                                {% if h.case_count %}<small class="text-muted d-block">{{ h.case_count }} {{ texts.get('cases_unit', '条') }}</small>{% endif %}
+                                {% if h.error_summary %}<small class="text-danger d-block text-truncate" style="max-width:12rem" title="{{ h.error_summary }}">{{ h.error_summary }}</small>{% endif %}
+                            </td>
+                            <td><code>{{ (h.client_id or '')[:8] }}{% if h.client_id and h.client_id|length > 8 %}…{% endif %}</code></td>
+                            <td class="text-nowrap">
+                                {% if h.status not in ['completed', 'error'] %}
+                                <a class="btn btn-sm btn-outline-primary" href="{{ url_for('ai_generation_status_page', generation_id=h.generation_id) }}">{{ texts.get('history_action_progress', '进度') }}</a>
+                                {% endif %}
+                                {% if h.status == 'completed' %}
+                                <a class="btn btn-sm btn-success" href="{{ url_for('ai_result', generation_id=h.generation_id) }}">{{ texts.get('history_action_result', '结果') }}</a>
+                                <a class="btn btn-sm btn-outline-secondary" href="{{ url_for('ai_regenerate', generation_id=h.generation_id) }}"><i class="bi bi-arrow-repeat"></i> {{ texts.get('history_regenerate_again', '再次生成') }}</a>
+                                {% elif h.status == 'error' %}
+                                <a class="btn btn-sm btn-warning" href="{{ url_for('ai_regenerate', generation_id=h.generation_id) }}"><i class="bi bi-arrow-repeat"></i> {{ texts.get('history_action_regenerate', '重新生成') }}</a>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <p class="text-muted mb-0 p-3">{{ texts.get('history_empty', '暂无记录') }}</p>
+            {% endif %}
+        </div>
+    </div>
+
+    <p class="text-muted small mt-3 mb-0">
+        <i class="bi bi-people"></i> {{ texts.get('history_multiuser_note', '') }}
+    </p>
+</div>
+{% endblock %}

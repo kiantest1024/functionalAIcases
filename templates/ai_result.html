@@ -1,27 +1,49 @@
 {% extends "ai_base.html" %}
 
-{% block title %}AI生成结果 - 功能测试用例生成器{% endblock %}
+{% block title %}{{ texts.get('result_title', 'AI生成结果') }} - {{ texts.get('app_name', '功能测试用例生成器') }}{% endblock %}
 
 {% block content %}
 <!-- AI成功提示 -->
 <div class="alert alert-success" role="alert">
     <h4 class="alert-heading">
-        <i class="bi bi-robot"></i> AI智能生成成功！
+        <i class="bi bi-robot"></i> {{ texts.get('ai_success_title', 'AI智能生成成功！') }}
     </h4>
-    <p>AI已成功分析需求并生成 <strong>{{ total_cases }}</strong> 个功能测试用例</p>
-    <p><strong>复杂度评分：</strong>{{ "%.2f"|format(ai_analysis.complexity_score) }}/1.0 
+    <p>{{ texts.get('ai_analysis_success', 'AI已成功分析需求并生成') }} <strong>{{ total_cases }}</strong> {{ texts.get('functional_test_cases', '个功能测试用例') }}</p>
+    <p><strong>{{ texts.get('complexity_score', '') }}:</strong> {{ "%.2f"|format(ai_analysis.complexity_score) }}/1.0 
        <span class="badge bg-{{ 'danger' if ai_analysis.complexity_score > 0.7 else 'warning' if ai_analysis.complexity_score > 0.4 else 'success' }}">
-           {{ stats.complexity_level }}复杂度
+           {{ stats.complexity_level }} {{ texts.get('complexity', '') }}
        </span>
     </p>
+    <!-- 生成统计信息 -->
+    <div id="generationStats" class="mt-2">
+        {% if generation_time != 'N/A' %}
+        <div class="row">
+            <div class="col-md-4">
+                <small class="text-muted">{{ texts.get('gen_time_label', '') }}: {{ generation_time }}{{ texts.get('sec_unit', '') }}</small>
+            </div>
+            <div class="col-md-4">
+                <small class="text-muted">{{ texts.get('case_count_stat_label', '') }}: {{ case_count }}</small>
+            </div>
+            <div class="col-md-4">
+                <small class="text-muted">{{ texts.get('avg_speed_label', '') }}: {{ "%.2f"|format(case_count|float / generation_time|float) }} {{ texts.get('cases_per_sec', '') }}</small>
+            </div>
+        </div>
+        {% endif %}
+    </div>
     <hr>
     <div class="d-flex gap-2">
         <a href="{{ url_for('download_file', filename=excel_file) }}" class="btn btn-success">
-            <i class="bi bi-file-earmark-spreadsheet"></i> 下载Excel文件
+            <i class="bi bi-file-earmark-spreadsheet"></i> {{ texts.get('download_excel_file', '下载Excel文件') }}
         </a>
+        {% if ai_report_file %}
         <a href="{{ url_for('download_file', filename=ai_report_file) }}" class="btn btn-outline-success">
-            <i class="bi bi-file-earmark-text"></i> 下载AI增强报告
+            <i class="bi bi-file-earmark-text"></i> {{ texts.get('download_ai_report', '下载AI增强报告') }}
         </a>
+        {% else %}
+        <button class="btn btn-outline-secondary" disabled title="{{ texts.get('report_failed_title', '') }}">
+            <i class="bi bi-file-earmark-text"></i> {{ texts.get('ai_report_unavailable', 'AI增强报告不可用') }}
+        </button>
+        {% endif %}
     </div>
 </div>
 
@@ -31,26 +53,26 @@
         <div class="card">
             <div class="card-header bg-gradient text-white" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
                 <h5 class="mb-0">
-                    <i class="bi bi-brain"></i> AI智能分析结果
+                    <i class="bi bi-brain"></i> {{ texts.get('ai_analysis_results', 'AI智能分析结果') }}
                 </h5>
             </div>
             <div class="card-body">
                 <div class="row">
                     <!-- 复杂度分析 -->
                     <div class="col-md-4 mb-3">
-                        <h6><i class="bi bi-speedometer2 text-primary"></i> 复杂度分析</h6>
+                        <h6><i class="bi bi-speedometer2 text-primary"></i> {{ texts.get('complexity_analysis', '复杂度分析') }}</h6>
                         <div class="progress mb-2" style="height: 20px;">
                             <div class="progress-bar bg-{{ 'danger' if ai_analysis.complexity_score > 0.7 else 'warning' if ai_analysis.complexity_score > 0.4 else 'success' }}" 
                                  style="width: {{ ai_analysis.complexity_score * 100 }}%">
                                 {{ "%.1f"|format(ai_analysis.complexity_score * 100) }}%
                             </div>
                         </div>
-                        <small class="text-muted">评分: {{ "%.2f"|format(ai_analysis.complexity_score) }} ({{ stats.complexity_level }}复杂度)</small>
+                        <small class="text-muted">{{ texts.get('score', '') }}: {{ "%.2f"|format(ai_analysis.complexity_score) }} ({{ stats.complexity_level }} {{ texts.get('complexity', '') }})</small>
                     </div>
                     
                     <!-- 风险覆盖 -->
                     <div class="col-md-4 mb-3">
-                        <h6><i class="bi bi-shield-check text-warning"></i> 风险覆盖</h6>
+                        <h6><i class="bi bi-shield-check text-warning"></i> {{ texts.get('risk_coverage', '风险覆盖') }}</h6>
                         {% if stats.risk_coverage %}
                         <div class="progress mb-2" style="height: 20px;">
                             <div class="progress-bar bg-warning" 
@@ -58,22 +80,22 @@
                                 {{ "%.1f"|format(stats.risk_coverage.coverage_rate) }}%
                             </div>
                         </div>
-                        <small class="text-muted">{{ stats.risk_coverage.covered_risks }}/{{ stats.risk_coverage.total_risks }} 风险区域已覆盖</small>
+                        <small class="text-muted">{{ stats.risk_coverage.covered_risks }}/{{ stats.risk_coverage.total_risks }} {{ texts.get('risk_areas_covered', '风险区域已覆盖') }}</small>
                         {% else %}
-                        <p class="text-muted">未识别到特定风险区域</p>
+                        <p class="text-muted">{{ texts.get('no_specific_risks', '未识别到特定风险区域') }}</p>
                         {% endif %}
                     </div>
                     
                     <!-- AI增强率 -->
                     <div class="col-md-4 mb-3">
-                        <h6><i class="bi bi-cpu text-info"></i> AI增强率</h6>
+                        <h6><i class="bi bi-cpu text-info"></i> {{ texts.get('ai_enhancement_rate', 'AI增强率') }}</h6>
                         <div class="progress mb-2" style="height: 20px;">
                             <div class="progress-bar bg-info" 
                                  style="width: {{ stats.enhancement_metrics.enhancement_rate }}%">
                                 {{ "%.1f"|format(stats.enhancement_metrics.enhancement_rate) }}%
                             </div>
                         </div>
-                        <small class="text-muted">{{ stats.enhancement_metrics.ai_enhanced_cases }}/{{ total_cases }} 用例使用AI增强</small>
+                        <small class="text-muted">{{ stats.enhancement_metrics.ai_enhanced_cases }}/{{ total_cases }} {{ texts.get('cases_ai_enhanced', '用例使用AI增强') }}</small>
                     </div>
                 </div>
                 
@@ -81,7 +103,7 @@
                 <div class="row mt-3">
                     {% if ai_analysis.risk_areas %}
                     <div class="col-md-6">
-                        <h6><i class="bi bi-exclamation-triangle text-warning"></i> 识别的风险区域</h6>
+                        <h6><i class="bi bi-exclamation-triangle text-warning"></i> {{ texts.get('identified_risk_areas', '识别的风险区域') }}</h6>
                         <div class="d-flex flex-wrap gap-1">
                             {% for risk in ai_analysis.risk_areas %}
                             <span class="badge bg-warning">{{ risk }}</span>
@@ -92,7 +114,7 @@
                     
                     {% if ai_analysis.critical_paths %}
                     <div class="col-md-6">
-                        <h6><i class="bi bi-diagram-3 text-info"></i> 关键路径</h6>
+                        <h6><i class="bi bi-diagram-3 text-info"></i> {{ texts.get('critical_paths', '关键路径') }}</h6>
                         <div class="d-flex flex-wrap gap-1">
                             {% for path in ai_analysis.critical_paths[:3] %}
                             <span class="badge bg-info">{{ path[:30] }}...</span>
@@ -112,7 +134,7 @@
         <div class="card stats-card text-center">
             <div class="card-body">
                 <h3 class="text-primary">{{ stats.total_cases }}</h3>
-                <p class="text-muted mb-0">总测试用例</p>
+                <p class="text-muted mb-0">{{ texts.get('total_test_cases', '总测试用例') }}</p>
             </div>
         </div>
     </div>
@@ -120,7 +142,7 @@
         <div class="card stats-card text-center">
             <div class="card-body">
                 <h3 class="text-success">{{ stats.priority_stats.get('P0', 0) }}</h3>
-                <p class="text-muted mb-0">P0高优先级</p>
+                <p class="text-muted mb-0">{{ texts.get('p0_high_priority', 'P0高优先级') }}</p>
             </div>
         </div>
     </div>
@@ -128,7 +150,7 @@
         <div class="card stats-card text-center">
             <div class="card-body">
                 <h3 class="text-warning">{{ stats.priority_stats.get('P1', 0) }}</h3>
-                <p class="text-muted mb-0">P1中优先级</p>
+                <p class="text-muted mb-0">{{ texts.get('p1_medium_priority', 'P1中优先级') }}</p>
             </div>
         </div>
     </div>
@@ -136,7 +158,7 @@
         <div class="card stats-card text-center">
             <div class="card-body">
                 <h3 class="text-info">{{ stats.enhancement_metrics.ai_enhanced_cases }}</h3>
-                <p class="text-muted mb-0">AI增强用例</p>
+                <p class="text-muted mb-0">{{ texts.get('ai_enhanced_cases', 'AI增强用例') }}</p>
             </div>
         </div>
     </div>
@@ -149,7 +171,7 @@
         <div class="card">
             <div class="card-header">
                 <h5 class="mb-0">
-                    <i class="bi bi-pie-chart"></i> 优先级分布
+                    <i class="bi bi-pie-chart"></i> {{ texts.get('priority_distribution', '优先级分布') }}
                 </h5>
             </div>
             <div class="card-body">
@@ -161,7 +183,7 @@
         <div class="card">
             <div class="card-header">
                 <h5 class="mb-0">
-                    <i class="bi bi-robot"></i> AI方法应用
+                    <i class="bi bi-robot"></i> {{ texts.get('ai_method_application', 'AI方法应用') }}
                 </h5>
             </div>
             <div class="card-body">
@@ -178,7 +200,7 @@
         <div class="card">
             <div class="card-header">
                 <h5 class="mb-0">
-                    <i class="bi bi-list-ul"></i> AI生成的测试用例预览 (前10个)
+                    <i class="bi bi-list-ul"></i> {{ texts.get('test_case_preview', 'AI生成的测试用例预览 (前10个)') }}
                 </h5>
             </div>
             <div class="card-body">
@@ -186,12 +208,12 @@
                     <table class="table table-striped table-hover">
                         <thead class="table-dark">
                             <tr>
-                                <th>用例编号</th>
-                                <th>模块</th>
-                                <th>子模块</th>
-                                <th>优先级</th>
-                                <th>AI方法</th>
-                                <th>操作</th>
+                                <th>{{ texts.get('case_number', '用例编号') }}</th>
+                                <th>{{ texts.get('module', '模块') }}</th>
+                                <th>{{ texts.get('submodule', '子模块') }}</th>
+                                <th>{{ texts.get('priority', '优先级') }}</th>
+                                <th>{{ texts.get('ai_method', 'AI方法') }}</th>
+                                <th>{{ texts.get('operation', '操作') }}</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -212,7 +234,7 @@
                                     <button class="btn btn-sm btn-outline-primary" 
                                             data-bs-toggle="modal" 
                                             data-bs-target="#caseModal{{ loop.index }}">
-                                        <i class="bi bi-eye"></i> 查看详情
+                                        <i class="bi bi-eye"></i> {{ texts.get('view_details', '') }}
                                     </button>
                                 </td>
                             </tr>
@@ -224,7 +246,7 @@
                 {% if total_cases > 10 %}
                 <div class="alert alert-info mt-3">
                     <i class="bi bi-info-circle"></i> 
-                    仅显示前10个测试用例，完整的{{ total_cases }}个用例请下载Excel或AI增强报告查看
+                    {{ texts.get('preview_limit_note', '').replace('{count}', total_cases|string) }}
                 </div>
                 {% endif %}
             </div>
@@ -237,13 +259,13 @@
     <div class="col-12 text-center">
         <div class="d-flex justify-content-center gap-3">
             <a href="{{ url_for('ai_generate') }}" class="btn btn-primary">
-                <i class="bi bi-robot"></i> 生成新的AI用例
+                <i class="bi bi-robot"></i> {{ texts.get('generate_new_cases', '生成新的AI用例') }}
             </a>
             <a href="{{ url_for('ai_smart_template') }}" class="btn btn-outline-primary">
-                <i class="bi bi-lightbulb"></i> AI智能模板
+                <i class="bi bi-lightbulb"></i> {{ texts.get('template_page_title', 'AI智能模板') }}
             </a>
             <a href="{{ url_for('index') }}" class="btn btn-outline-secondary">
-                <i class="bi bi-house"></i> 返回首页
+                <i class="bi bi-house"></i> {{ texts.get('btn_home', '返回首页') }}
             </a>
         </div>
     </div>
@@ -256,52 +278,53 @@
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title">
-                    <i class="bi bi-robot"></i> {{ case.case_id }} - AI生成测试用例详情
+                    <i class="bi bi-robot"></i> {{ case.case_id }} — {{ texts.get('case_detail_modal_title', '') }}
                 </h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
                 <div class="row">
                     <div class="col-md-6">
-                        <strong>模块：</strong> {{ case.module }}
+                        <strong>{{ texts.get('label_module_colon', '') }}</strong> {{ case.module }}
                     </div>
                     <div class="col-md-6">
-                        <strong>子模块：</strong> {{ case.submodule }}
+                        <strong>{{ texts.get('label_submodule_colon', '') }}</strong> {{ case.submodule }}
                     </div>
                 </div>
                 <hr>
                 <div class="mb-3">
-                    <strong>前置条件：</strong>
+                    <strong>{{ texts.get('label_precondition_colon', '') }}</strong>
                     <p class="text-muted">{{ case.precondition }}</p>
                 </div>
                 <div class="mb-3">
-                    <strong>测试步骤：</strong>
+                    <strong>{{ texts.get('label_test_steps_colon', '') }}</strong>
                     <pre class="bg-light p-2 rounded">{{ case.test_steps }}</pre>
                 </div>
                 <div class="mb-3">
-                    <strong>预期结果：</strong>
+                    <strong>{{ texts.get('label_expected_colon', '') }}</strong>
                     <p class="text-muted">{{ case.expected }}</p>
                 </div>
                 <div class="row">
                     <div class="col-md-6">
-                        <strong>优先级：</strong>
+                        <strong>{{ texts.get('label_priority_colon', '') }}</strong>
                         <span class="badge bg-{{ 'danger' if case.priority.value == 'P0' else 'warning' if case.priority.value == 'P1' else 'info' }}">
                             {{ case.priority.value }}
                         </span>
                     </div>
                     <div class="col-md-6">
-                        <strong>AI方法：</strong>
+                        <strong>{{ texts.get('label_ai_method_colon', '') }}</strong>
                         <small class="text-muted">{{ case.remark }}</small>
                     </div>
                 </div>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">关闭</button>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{{ texts.get('close', '') }}</button>
             </div>
         </div>
     </div>
 </div>
 {% endfor %}
+
 {% endblock %}
 
 {% block scripts %}
@@ -312,7 +335,7 @@ const priorityCtx = document.getElementById('priorityChart').getContext('2d');
 const priorityChart = new Chart(priorityCtx, {
     type: 'doughnut',
     data: {
-        labels: ['P0 (高)', 'P1 (中)', 'P2 (低)'],
+        labels: ['{{ texts.get("chart_p0", "")|e }}', '{{ texts.get("chart_p1", "")|e }}', '{{ texts.get("chart_p2", "")|e }}'],
         datasets: [{
             data: [
                 {{ stats.priority_stats.get('P0', 0) }},
@@ -346,7 +369,7 @@ const aiMethodChart = new Chart(aiMethodCtx, {
             {% endfor %}
         ],
         datasets: [{
-            label: 'AI增强用例数',
+            label: '{{ texts.get("chart_ai_enhanced_cases", "")|e }}',
             data: [
                 {% for method, count in stats.ai_method_stats.items() %}
                 {{ count }},

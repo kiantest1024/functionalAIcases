@@ -1,23 +1,22 @@
 {% extends "ai_base.html" %}
 
-{% block title %}专业测试用例生成结果{% endblock %}
+{% block title %}{{ texts.get('professional_result_title', '') }}{% endblock %}
 
 {% block content %}
 <div class="container mt-4">
-    <!-- 成功提示 -->
     <div class="alert alert-success alert-dismissible fade show" role="alert">
         <i class="fas fa-check-circle"></i>
-        <strong>生成成功！</strong> 已生成 {{ total_cases }} 个专业测试用例
+        <strong>{{ texts.get('professional_success_title', '') }}</strong>
+        {{ texts.get('professional_success_body', '').replace('{count}', total_cases|string) }}
         <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
     </div>
 
-    <!-- 统计信息 -->
     <div class="row mb-4">
         <div class="col-md-3">
             <div class="card text-center">
                 <div class="card-body">
                     <h3 class="text-primary">{{ total_cases }}</h3>
-                    <p class="mb-0">测试用例总数</p>
+                    <p class="mb-0">{{ texts.get('prof_stat_total', '') }}</p>
                 </div>
             </div>
         </div>
@@ -25,7 +24,7 @@
             <div class="card text-center">
                 <div class="card-body">
                     <h3 class="text-success">{{ stats.quality_metrics.requirement_coverage|round(1) }}%</h3>
-                    <p class="mb-0">需求覆盖率</p>
+                    <p class="mb-0">{{ texts.get('prof_stat_coverage', '') }}</p>
                 </div>
             </div>
         </div>
@@ -33,7 +32,7 @@
             <div class="card text-center">
                 <div class="card-body">
                     <h3 class="text-info">{{ stats.quality_metrics.avg_steps_per_case }}</h3>
-                    <p class="mb-0">平均步骤数</p>
+                    <p class="mb-0">{{ texts.get('prof_stat_avg_steps', '') }}</p>
                 </div>
             </div>
         </div>
@@ -41,18 +40,17 @@
             <div class="card text-center">
                 <div class="card-body">
                     <h3 class="text-warning">{{ stats.quality_metrics.documentation_rate|round(1) }}%</h3>
-                    <p class="mb-0">文档完整率</p>
+                    <p class="mb-0">{{ texts.get('prof_stat_doc_rate', '') }}</p>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- 下载文件 -->
     <div class="row mb-4">
         <div class="col-md-12">
             <div class="card">
                 <div class="card-header bg-primary text-white">
-                    <h5 class="mb-0"><i class="fas fa-download"></i> 下载文件</h5>
+                    <h5 class="mb-0"><i class="fas fa-download"></i> {{ texts.get('prof_download_files', '') }}</h5>
                 </div>
                 <div class="card-body">
                     <div class="row">
@@ -60,18 +58,18 @@
                             <div class="d-grid">
                                 <a href="{{ url_for('download_file', filename=excel_file) }}" 
                                    class="btn btn-success btn-lg">
-                                    <i class="fas fa-file-excel"></i> 下载Excel文件
+                                    <i class="fas fa-file-excel"></i> {{ texts.get('prof_download_excel_btn', '') }}
                                 </a>
-                                <small class="text-muted mt-1">包含完整的测试用例数据</small>
+                                <small class="text-muted mt-1">{{ texts.get('prof_download_excel_desc', '') }}</small>
                             </div>
                         </div>
                         <div class="col-md-6">
                             <div class="d-grid">
                                 <a href="{{ url_for('download_file', filename=md_file) }}" 
                                    class="btn btn-info btn-lg">
-                                    <i class="fas fa-file-alt"></i> 下载Markdown报告
+                                    <i class="fas fa-file-alt"></i> {{ texts.get('prof_download_md_btn', '') }}
                                 </a>
-                                <small class="text-muted mt-1">包含详细的分析报告</small>
+                                <small class="text-muted mt-1">{{ texts.get('prof_download_md_desc', '') }}</small>
                             </div>
                         </div>
                     </div>
@@ -80,12 +78,11 @@
         </div>
     </div>
 
-    <!-- 统计图表 -->
     <div class="row mb-4">
         <div class="col-md-6">
             <div class="card">
                 <div class="card-header">
-                    <h6 class="mb-0"><i class="fas fa-chart-pie"></i> 测试类型分布</h6>
+                    <h6 class="mb-0"><i class="fas fa-chart-pie"></i> {{ texts.get('prof_chart_types', '') }}</h6>
                 </div>
                 <div class="card-body">
                     {% for test_type, count in stats.test_type_stats.items() %}
@@ -105,13 +102,13 @@
         <div class="col-md-6">
             <div class="card">
                 <div class="card-header">
-                    <h6 class="mb-0"><i class="fas fa-chart-bar"></i> 优先级分布</h6>
+                    <h6 class="mb-0"><i class="fas fa-chart-bar"></i> {{ texts.get('prof_chart_priority', '') }}</h6>
                 </div>
                 <div class="card-body">
                     {% for priority, count in stats.priority_stats.items() %}
                     <div class="mb-2">
                         <div class="d-flex justify-content-between">
-                            <span>{{ priority }}优先级</span>
+                            <span>{% if lang == 'zh' %}{{ priority }}优先级{% else %}{{ priority }}{% endif %}</span>
                             <span class="badge 
                                 {% if priority == '高' %}bg-danger
                                 {% elif priority == '中' %}bg-warning
@@ -131,24 +128,23 @@
         </div>
     </div>
 
-    <!-- 测试用例预览 -->
     <div class="row">
         <div class="col-md-12">
             <div class="card">
                 <div class="card-header">
-                    <h5 class="mb-0"><i class="fas fa-list"></i> 测试用例预览（前10个）</h5>
+                    <h5 class="mb-0"><i class="fas fa-list"></i> {{ texts.get('prof_preview_table', '') }}</h5>
                 </div>
                 <div class="card-body">
                     <div class="table-responsive">
                         <table class="table table-striped table-hover">
                             <thead class="table-dark">
                                 <tr>
-                                    <th>用例ID</th>
-                                    <th>功能模块</th>
-                                    <th>用例标题</th>
-                                    <th>测试类型</th>
-                                    <th>优先级</th>
-                                    <th>操作</th>
+                                    <th>{{ texts.get('prof_col_case_id', '') }}</th>
+                                    <th>{{ texts.get('prof_col_feature', '') }}</th>
+                                    <th>{{ texts.get('prof_col_case_title', '') }}</th>
+                                    <th>{{ texts.get('prof_col_test_type', '') }}</th>
+                                    <th>{{ texts.get('prof_col_priority', '') }}</th>
+                                    <th>{{ texts.get('prof_col_operation', '') }}</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -178,7 +174,7 @@
                                         <button class="btn btn-sm btn-outline-primary" 
                                                 data-bs-toggle="modal" 
                                                 data-bs-target="#caseModal{{ loop.index }}">
-                                            <i class="fas fa-eye"></i> 查看详情
+                                            <i class="fas fa-eye"></i> {{ texts.get('view_details', '') }}
                                         </button>
                                     </td>
                                 </tr>
@@ -186,11 +182,10 @@
                             </tbody>
                         </table>
                     </div>
-                    
                     {% if total_cases > 10 %}
                     <div class="alert alert-info mt-3">
                         <i class="fas fa-info-circle"></i>
-                        仅显示前10个测试用例，完整的{{ total_cases }}个用例请下载Excel文件查看。
+                        {{ texts.get('prof_preview_footer', '').replace('{count}', total_cases|string) }}
                     </div>
                     {% endif %}
                 </div>
@@ -198,20 +193,18 @@
         </div>
     </div>
 
-    <!-- 操作按钮 -->
     <div class="row mt-4">
         <div class="col-md-12 text-center">
             <a href="{{ url_for('professional_generate') }}" class="btn btn-primary">
-                <i class="fas fa-plus"></i> 生成新的测试用例
+                <i class="fas fa-plus"></i> {{ texts.get('prof_gen_new', '') }}
             </a>
             <a href="{{ url_for('index') }}" class="btn btn-secondary">
-                <i class="fas fa-home"></i> 返回首页
+                <i class="fas fa-home"></i> {{ texts.get('btn_home', '') }}
             </a>
         </div>
     </div>
 </div>
 
-<!-- 测试用例详情模态框 -->
 {% for case in test_cases %}
 <div class="modal fade" id="caseModal{{ loop.index }}" tabindex="-1">
     <div class="modal-dialog modal-lg">
@@ -223,9 +216,9 @@
             <div class="modal-body">
                 <div class="row">
                     <div class="col-md-6">
-                        <p><strong>用例ID：</strong> <code>{{ case.case_id }}</code></p>
-                        <p><strong>功能模块：</strong> {{ case.feature_module }}</p>
-                        <p><strong>测试类型：</strong> 
+                        <p><strong>{{ texts.get('prof_label_case_id', '') }}</strong> <code>{{ case.case_id }}</code></p>
+                        <p><strong>{{ texts.get('prof_label_feature_mod', '') }}</strong> {{ case.feature_module }}</p>
+                        <p><strong>{{ texts.get('prof_label_test_type_colon', '') }}</strong> 
                             <span class="badge 
                                 {% if case.test_type == '正向' %}bg-success
                                 {% elif case.test_type == '边界' %}bg-warning
@@ -236,7 +229,7 @@
                         </p>
                     </div>
                     <div class="col-md-6">
-                        <p><strong>优先级：</strong> 
+                        <p><strong>{{ texts.get('prof_label_priority_colon', '') }}</strong> 
                             <span class="badge 
                                 {% if case.priority == '高' %}bg-danger
                                 {% elif case.priority == '中' %}bg-warning
@@ -245,20 +238,17 @@
                             </span>
                         </p>
                         {% if case.related_requirement_id %}
-                        <p><strong>关联需求ID：</strong> {{ case.related_requirement_id }}</p>
+                        <p><strong>{{ texts.get('prof_modal_related_req', '') }}</strong> {{ case.related_requirement_id }}</p>
                         {% endif %}
                     </div>
                 </div>
-                
                 <hr>
-                
                 <div class="mb-3">
-                    <h6><i class="fas fa-list-ul"></i> 前置条件</h6>
+                    <h6><i class="fas fa-list-ul"></i> {{ texts.get('section_preconditions', '') }}</h6>
                     <div class="bg-light p-2 rounded">{{ case.preconditions }}</div>
                 </div>
-                
                 <div class="mb-3">
-                    <h6><i class="fas fa-tasks"></i> 测试步骤</h6>
+                    <h6><i class="fas fa-tasks"></i> {{ texts.get('section_test_steps', '') }}</h6>
                     <div class="bg-light p-2 rounded">
                         {% for step in case.test_steps.split('\n') %}
                             {% if step.strip() %}
@@ -267,21 +257,19 @@
                         {% endfor %}
                     </div>
                 </div>
-                
                 <div class="mb-3">
-                    <h6><i class="fas fa-check-circle"></i> 预期结果</h6>
+                    <h6><i class="fas fa-check-circle"></i> {{ texts.get('section_expected_result', '') }}</h6>
                     <div class="bg-light p-2 rounded">{{ case.expected_result }}</div>
                 </div>
-                
                 {% if case.notes %}
                 <div class="mb-3">
-                    <h6><i class="fas fa-sticky-note"></i> 备注</h6>
+                    <h6><i class="fas fa-sticky-note"></i> {{ texts.get('prof_modal_remarks', '') }}</h6>
                     <div class="bg-light p-2 rounded">{{ case.notes }}</div>
                 </div>
                 {% endif %}
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">关闭</button>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{{ texts.get('close', '') }}</button>
             </div>
         </div>
     </div>
